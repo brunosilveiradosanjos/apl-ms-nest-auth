@@ -1,20 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing'
+import { Client } from 'pg'
+import * as fs from 'fs'
+import * as path from 'path'
 import { INestApplication } from '@nestjs/common'
 import request from 'supertest'
 import { AppModule } from '@/app.module'
 import { ZodValidationPipe } from 'nestjs-zod'
-import { Client } from 'pg'
-import * as fs from 'fs'
-import * as path from 'path'
-import { ConfigService } from '@nestjs/config'
 import { generateUniqueId } from '@/shared/utils/generate-unique-id'
+import { ConfigService } from '@nestjs/config'
 
-describe('AuthController (e2e)', () => {
+describe('UsersController (e2e)', () => {
   let app: INestApplication
   let pgClient: Client
   let schema: string
-
   const API_PREFIX = '/api/v1'
+
+  // --- REMOVED beforeAll and afterAll ---
 
   beforeEach(async () => {
     // 1. Generate a unique schema name for this test
@@ -52,7 +53,6 @@ describe('AuthController (e2e)', () => {
 
   afterEach(async () => {
     // 6. Clean up: close the app, drop the test schema, and disconnect the client
-    // --- FIX: Add checks to prevent errors if setup failed ---
     if (app) {
       await app.close()
     }
@@ -60,58 +60,42 @@ describe('AuthController (e2e)', () => {
       await pgClient.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`)
       await pgClient.end()
     }
-
     delete process.env.POSTGRES_SCHEMA
   })
 
-  // --- YOUR TESTS REMAIN THE SAME ---
-  // They will now run in a completely isolated environment
-  describe('/auth/token (POST)', () => {
-    it('should fail with 401 for invalid credentials', () => {
-      return request(app.getHttpServer())
-        .post(`${API_PREFIX}/auth/token`)
-        .send({ username: 'johndoe', password: 'wrongpassword' })
-        .expect(401)
-    })
-
-    it('should return tokens for valid credentials', async () => {
+  describe('/users (POST)', () => {
+    it('should create a new user and return tokens', async () => {
       const newUser = {
-        username: `testuser_${Date.now()}`, // Ensure unique username for each test run
+        username: `testuser_${Date.now()}`,
         password: 'strongPassword123',
       }
 
-      await request(app.getHttpServer()).post(`${API_PREFIX}/users`).send(newUser).expect(201) // Expect HTTP 201 Created
-
       const res = await request(app.getHttpServer())
-        .post(`${API_PREFIX}/auth/token`)
+        .post(`${API_PREFIX}/users`)
         .send(newUser)
-        .expect(200)
+        .expect(201)
 
       expect(res.body).toHaveProperty('access_token')
       expect(res.body).toHaveProperty('refresh_token')
     })
-  })
 
-  describe('/auth/refresh (POST)', () => {
-    it('should return new tokens when given a valid refresh token', async () => {
+    it('should fail with 409 Conflict if the username already exists', async () => {
       const newUser = {
-        username: `testuser_${Date.now()}`, // Ensure unique username for each test run
+        username: `testuser_${Date.now()}`,
         password: 'strongPassword123',
       }
-      const newUserRes = await request(app.getHttpServer())
+      // First, create the user
+      await request(app.getHttpServer()).post(`${API_PREFIX}/users`).send(newUser).expect(201)
+
+      // Then, try to create it again
+      return request(app.getHttpServer()).post(`${API_PREFIX}/users`).send(newUser).expect(409)
+    })
+
+    it('should fail with 400 Bad Request if the password is too short', async () => {
+      return request(app.getHttpServer())
         .post(`${API_PREFIX}/users`)
-        .send(newUser)
-        .expect(201) // Expect HTTP 201 Created
-
-      const { refresh_token } = newUserRes.body
-
-      const refreshRes = await request(app.getHttpServer())
-        .post(`${API_PREFIX}/auth/refresh`)
-        .send({ refreshToken: refresh_token })
-        .expect(200)
-
-      expect(refreshRes.body).toHaveProperty('access_token')
-      expect(refreshRes.body).toHaveProperty('refresh_token')
+        .send({ username: `anotheruser_${Date.now()}`, password: '123' })
+        .expect(400)
     })
   })
 })
