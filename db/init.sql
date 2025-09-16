@@ -31,4 +31,4 @@ CREATE INDEX idx_active_refresh_tokens ON refresh_tokens(token_hash) WHERE is_re
 -- The password is 'strongPassword123'
 INSERT INTO users (id, username, password_hash)
 VALUES
-('20250915023219123456', 'johndoe', '$2a$10$w4B.gY2j2n9j8H.zG6.sJOpeC/P9Uj/r5Y8kL3yJ4n7F6qD9xO3uO');
+('20250915093000001234', 'johndoe', '$2a$10$AbI.jott.p2y1iK5lBGA7u/GvV.L03PlzV5isg5vYL.g09S9Zg9eS');

@@ -11,7 +11,6 @@ import { RefreshTokenDto } from '@/modules/auth/infrastructure/http/dto/refresh-
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
-  // ... (rest of the file content is the same)
   @Post('token')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Authenticate user and receive tokens' })

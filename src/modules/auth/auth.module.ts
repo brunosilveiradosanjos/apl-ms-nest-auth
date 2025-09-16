@@ -15,6 +15,7 @@ import { SequelizeRefreshTokensRepository } from './infrastructure/persistence/s
 import { AuthCleanupService } from './application/services/auth-cleanup.service'
 import { IHashProvider } from './infrastructure/providers/hash/i-hash.provider'
 import { BcryptHashProvider } from './infrastructure/providers/hash/bcrypt-hash.provider'
+import { UsersController } from './infrastructure/http/controllers/users.controller'
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { BcryptHashProvider } from './infrastructure/providers/hash/bcrypt-hash.
     JwtModule.register({}),
     ConfigModule,
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, UsersController],
   providers: [
     AuthService,
     AuthCleanupService,

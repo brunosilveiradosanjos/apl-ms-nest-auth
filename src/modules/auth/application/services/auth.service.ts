@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
   NotFoundException,
   InternalServerErrorException,
+  ConflictException,
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { JwtService } from '@nestjs/jwt'
@@ -41,18 +42,19 @@ export class AuthService {
     private readonly sequelize: Sequelize,
   ) {}
 
-  // ... (rest of the file content is the same)
   private hashToken(token: string): string {
     return crypto.createHash('sha256').update(token).digest('hex')
   }
 
   async login(username: string, pass: string): Promise<TokenResponseDto> {
     const user = await this.usersRepository.findByUsername(username)
+    console.log('user:', user)
     if (!user) {
       throw new UnauthorizedException('Invalid credentials.')
     }
 
     const isPasswordMatching = await this.hashProvider.compare(pass, user.password_hash)
+    console.log('isPasswordMatching:', isPasswordMatching)
     if (!isPasswordMatching) {
       throw new UnauthorizedException('Invalid credentials.')
     }
@@ -128,5 +130,25 @@ export class AuthService {
       access_token: accessToken,
       refresh_token: refreshToken,
     }
+  }
+
+  async signUp(username: string, pass: string): Promise<TokenResponseDto> {
+    // 1. Check if user already exists
+    const existingUser = await this.usersRepository.findByUsername(username)
+    if (existingUser) {
+      throw new ConflictException('Username already exists.')
+    }
+
+    // 2. Hash the password
+    const password_hash = await this.hashProvider.hash(pass)
+
+    // 3. Create the user in the database
+    const newUser = await this.usersRepository.create({
+      username,
+      password_hash,
+    })
+
+    // 4. Reuse token generation logic to log the new user in
+    return this.generateAndSaveTokens(newUser)
   }
 }
