@@ -61,7 +61,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials.')
     }
 
-    this.usersRepository.updateLastLogin(user.id)
+    void this.usersRepository.updateLastLogin(user.id)
 
     return this.generateAndSaveTokens(user)
   }
@@ -91,13 +91,14 @@ export class AuthService {
     }
 
     try {
-      const result = await this.sequelize.transaction(async (t) => {
+      const result = await this.sequelize.transaction(async () => {
         await this.refreshTokensRepository.revoke(existingRefreshToken.id)
         return this.generateAndSaveTokens(user)
       })
       return result
     } catch (error) {
-      console.error('Refresh token transaction failed:', error)
+      const message = error instanceof Error ? error.message : String(error)
+      console.error('Refresh token transaction failed:', message)
       throw new InternalServerErrorException('Could not refresh token.')
     }
   }
