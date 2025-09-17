@@ -21,8 +21,8 @@ export class AuthController {
     type: TokenResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getToken(@Body() { username, password }: TokenRequestDto): Promise<TokenResponseDto> {
-    return this.authService.login(username, password)
+  async getToken(@Body() { identifier, password }: TokenRequestDto): Promise<TokenResponseDto> {
+    return this.authService.login(identifier, password)
   }
 
   @Post('validate')

@@ -1,3 +1,8 @@
+// --- FIX: Add these two lines at the very top ---
+import * as dotenv from 'dotenv'
+dotenv.config({ path: '.env' })
+// ---------------------------------------------
+
 import { Test, TestingModule } from '@nestjs/testing'
 import { Client } from 'pg'
 import * as fs from 'fs'
@@ -15,16 +20,11 @@ describe('UsersController (e2e)', () => {
   let schema: string
   const API_PREFIX = '/api/v1'
 
-  // --- REMOVED beforeAll and afterAll ---
-
   beforeEach(async () => {
-    // 1. Generate a unique schema name for this test
     schema = `test_${generateUniqueId().replace(/-/g, '_')}`
-
-    // 2. Set the environment variable so NestJS connects to our new schema
     process.env.POSTGRES_SCHEMA = schema
 
-    // 3. Connect to the database with a raw client to manage the schema
+    // This now works because dotenv has loaded the .env file
     const configService = new ConfigService()
     pgClient = new Client({
       host: configService.get<string>('DB_HOST'),
@@ -35,12 +35,10 @@ describe('UsersController (e2e)', () => {
     })
     await pgClient.connect()
 
-    // 4. Create the schema and load the init script into it
     await pgClient.query(`CREATE SCHEMA "${schema}"`)
     const initSql = fs.readFileSync(path.join(__dirname, '../db/init.sql'), 'utf-8')
     await pgClient.query(`SET search_path TO "${schema}";\n${initSql}`)
 
-    // 5. Now, bootstrap the NestJS application for the test
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile()
@@ -52,10 +50,7 @@ describe('UsersController (e2e)', () => {
   })
 
   afterEach(async () => {
-    // 6. Clean up: close the app, drop the test schema, and disconnect the client
-    if (app) {
-      await app.close()
-    }
+    if (app) await app.close()
     if (pgClient) {
       await pgClient.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`)
       await pgClient.end()
@@ -64,37 +59,38 @@ describe('UsersController (e2e)', () => {
   })
 
   describe('/users (POST)', () => {
-    it('should create a new user and return tokens', async () => {
-      const newUser = {
-        username: `testuser_${Date.now()}`,
-        password: 'strongPassword123',
-      }
+    const timestamp = Date.now()
+    const newUser = {
+      username: `testuser_${timestamp}`,
+      email: `test_${timestamp}@example.com`,
+      password: 'strongPassword123',
+      firstName: 'Test',
+      lastName: 'User',
+    }
 
-      const res = await request(app.getHttpServer())
-        .post(`${API_PREFIX}/users`)
-        .send(newUser)
-        .expect(201)
+    it('should create a new user with all fields and return tokens', async () => {
+      const res = await request(app.getHttpServer()).post(`${API_PREFIX}/users`).send(newUser).expect(201)
 
       expect(res.body).toHaveProperty('access_token')
       expect(res.body).toHaveProperty('refresh_token')
     })
 
     it('should fail with 409 Conflict if the username already exists', async () => {
-      const newUser = {
-        username: `testuser_${Date.now()}`,
-        password: 'strongPassword123',
-      }
-      // First, create the user
       await request(app.getHttpServer()).post(`${API_PREFIX}/users`).send(newUser).expect(201)
+      const duplicateUsernameUser = { ...newUser, email: `another_${timestamp}@example.com` }
+      return request(app.getHttpServer()).post(`${API_PREFIX}/users`).send(duplicateUsernameUser).expect(409)
+    })
 
-      // Then, try to create it again
-      return request(app.getHttpServer()).post(`${API_PREFIX}/users`).send(newUser).expect(409)
+    it('should fail with 409 Conflict if the email already exists', async () => {
+      await request(app.getHttpServer()).post(`${API_PREFIX}/users`).send(newUser).expect(201)
+      const duplicateEmailUser = { ...newUser, username: `another_${timestamp}` }
+      return request(app.getHttpServer()).post(`${API_PREFIX}/users`).send(duplicateEmailUser).expect(409)
     })
 
     it('should fail with 400 Bad Request if the password is too short', async () => {
       return request(app.getHttpServer())
         .post(`${API_PREFIX}/users`)
-        .send({ username: `anotheruser_${Date.now()}`, password: '123' })
+        .send({ username: `anotheruser_${Date.now()}`, email: `short_${Date.now()}@example.com`, password: '123' })
         .expect(400)
     })
   })

@@ -6,6 +6,7 @@ import {
   NotFoundException,
   InternalServerErrorException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { JwtService } from '@nestjs/jwt'
@@ -24,10 +25,7 @@ import {
 import { generateUniqueId } from '@/shared/utils/generate-unique-id'
 import { User } from '@/modules/auth/domain/entities/user.entity'
 import { TokenResponseDto } from '@/modules/auth/infrastructure/http/dto/token-response.dto'
-import {
-  IHashProvider,
-  IHashProvider as IHashProviderSymbol,
-} from '@/modules/auth/infrastructure/providers/hash/i-hash.provider'
+import { IHashProvider, IHashProvider as IHashProviderSymbol } from '@/modules/auth/infrastructure/providers/hash/i-hash.provider'
 
 @Injectable()
 export class AuthService {
@@ -46,18 +44,24 @@ export class AuthService {
     return crypto.createHash('sha256').update(token).digest('hex')
   }
 
-  async login(username: string, pass: string): Promise<TokenResponseDto> {
-    const user = await this.usersRepository.findByUsername(username)
-    console.log('user:', user)
+  async login(identifier: string, pass: string): Promise<TokenResponseDto> {
+    const user = await this.usersRepository.findByUsernameOrEmail(identifier)
+
     if (!user) {
       throw new UnauthorizedException('Invalid credentials.')
     }
 
+    if (!user.is_active) {
+      throw new ForbiddenException('This account has been disabled.')
+    }
+
     const isPasswordMatching = await this.hashProvider.compare(pass, user.password_hash)
-    console.log('isPasswordMatching:', isPasswordMatching)
+
     if (!isPasswordMatching) {
       throw new UnauthorizedException('Invalid credentials.')
     }
+
+    this.usersRepository.updateLastLogin(user.id)
 
     return this.generateAndSaveTokens(user)
   }
@@ -77,11 +81,7 @@ export class AuthService {
     const tokenHash = this.hashToken(token)
     const existingRefreshToken = await this.refreshTokensRepository.findByTokenHash(tokenHash)
 
-    if (
-      !existingRefreshToken ||
-      existingRefreshToken.is_revoked ||
-      new Date() > new Date(existingRefreshToken.expires_at)
-    ) {
+    if (!existingRefreshToken || existingRefreshToken.is_revoked || new Date() > new Date(existingRefreshToken.expires_at)) {
       throw new UnauthorizedException('Refresh token is invalid or expired.')
     }
 
@@ -114,10 +114,7 @@ export class AuthService {
     ])
 
     const refreshTokenHash = this.hashToken(refreshToken)
-    const refreshTokenExpiresInDays = parseInt(
-      this.configService.getOrThrow('JWT_REFRESH_TOKEN_EXPIRES_IN').replace('d', ''),
-      10,
-    )
+    const refreshTokenExpiresInDays = parseInt(this.configService.getOrThrow('JWT_REFRESH_TOKEN_EXPIRES_IN').replace('d', ''), 10)
 
     await this.refreshTokensRepository.create({
       id: generateUniqueId(),
@@ -132,20 +129,31 @@ export class AuthService {
     }
   }
 
-  async signUp(username: string, pass: string): Promise<TokenResponseDto> {
+  async signUp(dto: {
+    username: string
+    email: string
+    pass: string
+    firstName?: string
+    lastName?: string
+  }): Promise<TokenResponseDto> {
     // 1. Check if user already exists
-    const existingUser = await this.usersRepository.findByUsername(username)
-    if (existingUser) {
+    if (await this.usersRepository.findByUsername(dto.username)) {
       throw new ConflictException('Username already exists.')
+    }
+    if (await this.usersRepository.findByEmail(dto.email)) {
+      throw new ConflictException('Email address is already in use.')
     }
 
     // 2. Hash the password
-    const password_hash = await this.hashProvider.hash(pass)
+    const password_hash = await this.hashProvider.hash(dto.pass)
 
     // 3. Create the user in the database
     const newUser = await this.usersRepository.create({
-      username,
+      username: dto.username,
+      email: dto.email,
       password_hash,
+      first_name: dto.firstName,
+      last_name: dto.lastName,
     })
 
     // 4. Reuse token generation logic to log the new user in

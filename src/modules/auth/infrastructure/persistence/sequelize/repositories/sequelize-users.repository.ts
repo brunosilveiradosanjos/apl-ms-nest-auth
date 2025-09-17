@@ -5,13 +5,28 @@ import { UserModel } from '@/modules/auth/infrastructure/persistence/sequelize/m
 import { IUsersRepository } from '@/modules/auth/domain/repositories/i-users.repository'
 import { User } from '@/modules/auth/domain/entities/user.entity'
 import { generateUniqueId } from '@/shared/utils/generate-unique-id'
+import { Op } from 'sequelize'
 
 @Injectable()
 export class SequelizeUsersRepository implements IUsersRepository {
   constructor(@InjectModel(UserModel) private readonly userModel: typeof UserModel) {}
 
+  async findByUsernameOrEmail(identifier: string): Promise<User | null> {
+    const user = await this.userModel.findOne({
+      where: {
+        [Op.or]: [{ username: identifier }, { email: identifier }],
+      },
+    })
+    return user ? (user.toJSON() as User) : null
+  }
+
   async findByUsername(username: string): Promise<User | null> {
     const user = await this.userModel.findOne({ where: { username } })
+    return user ? (user.toJSON() as User) : null
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    const user = await this.userModel.findOne({ where: { email } })
     return user ? (user.toJSON() as User) : null
   }
 
@@ -26,5 +41,9 @@ export class SequelizeUsersRepository implements IUsersRepository {
       ...userData,
     })
     return newUser.toJSON() as User
+  }
+
+  async updateLastLogin(userId: string): Promise<void> {
+    await this.userModel.update({ last_login: new Date() }, { where: { id: userId } })
   }
 }

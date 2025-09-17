@@ -8,6 +8,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { ConfigService } from '@nestjs/config'
 import { generateUniqueId } from '@/shared/utils/generate-unique-id'
+import { TokenRequestDto } from '@/modules/auth/infrastructure/http/dto/token-request.dto'
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication
@@ -70,21 +71,25 @@ describe('AuthController (e2e)', () => {
     it('should fail with 401 for invalid credentials', () => {
       return request(app.getHttpServer())
         .post(`${API_PREFIX}/auth/token`)
-        .send({ username: 'johndoe', password: 'wrongpassword' })
+        .send({ identifier: 'johndoe', password: 'wrongpassword' } as TokenRequestDto)
         .expect(401)
     })
 
     it('should return tokens for valid credentials', async () => {
+      const timestamp = Date.now()
       const newUser = {
-        username: `testuser_${Date.now()}`, // Ensure unique username for each test run
+        username: `testuser_${timestamp}`,
+        email: `test_${timestamp}@example.com`,
         password: 'strongPassword123',
+        firstName: 'Test',
+        lastName: 'User',
       }
 
       await request(app.getHttpServer()).post(`${API_PREFIX}/users`).send(newUser).expect(201) // Expect HTTP 201 Created
 
       const res = await request(app.getHttpServer())
         .post(`${API_PREFIX}/auth/token`)
-        .send(newUser)
+        .send({ identifier: newUser.email, password: newUser.password } as TokenRequestDto)
         .expect(200)
 
       expect(res.body).toHaveProperty('access_token')
@@ -94,14 +99,15 @@ describe('AuthController (e2e)', () => {
 
   describe('/auth/refresh (POST)', () => {
     it('should return new tokens when given a valid refresh token', async () => {
+      const timestamp = Date.now()
       const newUser = {
-        username: `testuser_${Date.now()}`, // Ensure unique username for each test run
+        username: `testuser_${timestamp}`,
+        email: `test_${timestamp}@example.com`,
         password: 'strongPassword123',
+        firstName: 'Test',
+        lastName: 'User',
       }
-      const newUserRes = await request(app.getHttpServer())
-        .post(`${API_PREFIX}/users`)
-        .send(newUser)
-        .expect(201) // Expect HTTP 201 Created
+      const newUserRes = await request(app.getHttpServer()).post(`${API_PREFIX}/users`).send(newUser).expect(201) // Expect HTTP 201 Created
 
       const { refresh_token } = newUserRes.body
 

@@ -18,11 +18,7 @@ import { BcryptHashProvider } from './infrastructure/providers/hash/bcrypt-hash.
 import { UsersController } from './infrastructure/http/controllers/users.controller'
 
 @Module({
-  imports: [
-    SequelizeModule.forFeature([UserModel, RefreshTokenModel]),
-    JwtModule.register({}),
-    ConfigModule,
-  ],
+  imports: [SequelizeModule.forFeature([UserModel, RefreshTokenModel]), JwtModule.register({}), ConfigModule],
   controllers: [AuthController, UsersController],
   providers: [
     AuthService,

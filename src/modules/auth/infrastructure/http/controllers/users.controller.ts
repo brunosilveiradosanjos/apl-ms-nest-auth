@@ -22,7 +22,13 @@ export class UsersController {
   })
   @ApiResponse({ status: 400, description: 'Bad Request: Invalid input data.' })
   @ApiResponse({ status: 409, description: 'Conflict: Username already exists.' })
-  async createUser(@Body() { username, password }: CreateUserDto): Promise<TokenResponseDto> {
-    return this.authService.signUp(username, password)
+  async createUser(@Body() dto: CreateUserDto): Promise<TokenResponseDto> {
+    return this.authService.signUp({
+      username: dto.username,
+      email: dto.email,
+      pass: dto.password,
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+    })
   }
 }
