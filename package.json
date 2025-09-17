@@ -13,13 +13,13 @@
     "debug": "nest start --debug --watch",
     "prod": "node dist/main",
     "lint": "cross-env NODE_OPTIONS='--require ts-node/register' eslint --config eslint.config.ts .",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:cov": "jest --coverage",
+    "test": "jest --config jest.config.ts",
+    "test:watch": "jest --config jest.config.ts --watch",
+    "test:cov": "jest --config jest.config.ts --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "db:start": "docker-compose up -d",
     "db:wait": "wait-on tcp:5432 -t 30000",
-    "test:e2e:run": "jest --config ./test/jest-e2e.json --runInBand",
+    "test:e2e:run": "jest --config test/jest-e2e.config.ts --runInBand",
     "test:e2e": "npm-run-all db:start db:wait test:e2e:run"
   },
   "dependencies": {
@@ -74,25 +74,5 @@
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.43.0",
     "wait-on": "^9.0.0"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node",
-    "moduleNameMapper": {
-      "^@/(.*)$": "<rootDir>/$1"
-    }
   }
 }
