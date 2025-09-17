@@ -70,7 +70,7 @@ describe('SequelizeUsersRepository', () => {
 
   describe('create', () => {
     it('should call create with correct user data', async () => {
-      const { id, ...userData } = userStub()
+      const { ...userData } = userStub()
       mockUserModel.create.mockResolvedValue({ toJSON: () => userData })
       await repository.create(userData)
       expect(mockUserModel.create).toHaveBeenCalledWith(expect.objectContaining(userData))

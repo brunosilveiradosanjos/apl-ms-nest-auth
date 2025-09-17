@@ -15,14 +15,14 @@ export class SequelizeRefreshTokensRepository implements IRefreshTokensRepositor
 
   async create(tokenData: Omit<RefreshToken, 'is_revoked'>): Promise<RefreshToken> {
     const token = await this.refreshTokenModel.create(tokenData)
-    return token.toJSON() as RefreshToken
+    return token.toJSON()
   }
 
   async findByTokenHash(tokenHash: string): Promise<RefreshToken | null> {
     const token = await this.refreshTokenModel.findOne({
       where: { token_hash: tokenHash, is_revoked: false },
     })
-    return token ? (token.toJSON() as RefreshToken) : null
+    return token ? token.toJSON() : null
   }
 
   async revoke(id: string): Promise<void> {

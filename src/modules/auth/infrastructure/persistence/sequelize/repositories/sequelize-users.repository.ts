@@ -17,22 +17,22 @@ export class SequelizeUsersRepository implements IUsersRepository {
         [Op.or]: [{ username: identifier }, { email: identifier }],
       },
     })
-    return user ? (user.toJSON() as User) : null
+    return user ? user.toJSON() : null
   }
 
   async findByUsername(username: string): Promise<User | null> {
     const user = await this.userModel.findOne({ where: { username } })
-    return user ? (user.toJSON() as User) : null
+    return user ? user.toJSON() : null
   }
 
   async findByEmail(email: string): Promise<User | null> {
     const user = await this.userModel.findOne({ where: { email } })
-    return user ? (user.toJSON() as User) : null
+    return user ? user.toJSON() : null
   }
 
   async findById(id: string): Promise<User | null> {
     const user = await this.userModel.findByPk(id)
-    return user ? (user.toJSON() as User) : null
+    return user ? user.toJSON() : null
   }
 
   async create(userData: Omit<User, 'id' | 'created_at' | 'updated_at'>): Promise<User> {
@@ -40,7 +40,7 @@ export class SequelizeUsersRepository implements IUsersRepository {
       id: generateUniqueId(),
       ...userData,
     })
-    return newUser.toJSON() as User
+    return newUser.toJSON()
   }
 
   async updateLastLogin(userId: string): Promise<void> {
