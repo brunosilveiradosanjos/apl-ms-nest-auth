@@ -51,7 +51,7 @@ A production-ready authentication microservice built with NestJS, PostgreSQL, an
 5.  **Run the application in development mode:**
     The server will start and watch for file changes.
     ```bash
-    npm run start:dev
+    npm run dev
     ```
 
 The application will be running at `http://localhost:3000`.
