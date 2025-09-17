@@ -1,0 +1,84 @@
+# A descriptive name for your workflow
+name: CI Pipeline
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push events for the main and development branches
+  push:
+    branches: [main, homologation, development]
+
+  # Triggers the workflow on pull request events for the main and development branches
+  pull_request:
+    branches: [main, homologation, development]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "test"
+  test:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Service containers are Docker containers that provide a simple and portable way
+    # to host services that you might need to test or operate your application.
+    services:
+      # The label of the service container
+      postgres:
+        # The Docker image to use
+        image: postgres:15-alpine
+        # Environment variables to set in the container
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: auth_db_test
+        # Options to pass to the docker create command
+        # This health check is crucial. It ensures that the subsequent steps
+        # will not run until the PostgreSQL server is fully initialized and ready.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps port 5432 on the service container to port 5432 on the host runner.
+          # This allows the tests to connect to the database via localhost:5432.
+          - 5432:5432
+
+    # A job contains a sequence of tasks called steps
+    steps:
+      # Step 1: Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Sets up a Node.js environment for use in actions
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm' # Caches npm dependencies for faster runs
+
+      # Step 3: Install dependencies using 'npm ci' which is faster and more secure for CI
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4: Run the linter to check for code style issues
+      - name: Run lint check
+        run: npm run lint
+
+      # Step 5: Run the unit tests
+      - name: Run unit tests
+        run: npm test
+
+      # Step 6: Run the end-to-end tests
+      # We use 'test:e2e:run' because the database service is already started and managed by GitHub Actions.
+      # We don't need our 'db:start' or 'db:wait' scripts here.
+      - name: Run E2E tests
+        run: npm run test:e2e:run
+        # Environment variables needed for the E2E tests to connect to the service container
+        env:
+          DB_HOST: localhost # The service is mapped to localhost on the runner
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: testpassword
+          DB_DATABASE: auth_db_test
+          # For CI, this secret just needs to be a valid string. For production, use GitHub Secrets.
+          JWT_SECRET: a_super_secret_ci_key_that_is_long_enough_to_be_valid_for_tests
