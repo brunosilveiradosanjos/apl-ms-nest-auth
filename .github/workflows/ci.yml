@@ -3,41 +3,28 @@ name: CI Pipeline
 
 # Controls when the workflow will run
 on:
-  # Triggers the workflow on push events for the main and development branches
   push:
-    branches: [main, homologation, development]
-
-  # Triggers the workflow on pull request events for the main and development branches
+    branches: [main, development]
   pull_request:
-    branches: [main, homologation, development]
-  # Allows you to run this workflow manually from the Actions tab
+    branches: [main, development]
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "test"
   test:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
-    # Define job-level permissions. 'contents: read' is needed to checkout other repositories.
-    permissions:
-      contents: read
-
     # Service containers provide a running PostgreSQL database for the E2E tests
     services:
-      # The label of the service container
       postgres:
-        # The Docker image to use
         image: postgres:15-alpine
-        # Environment variables to set in the container
         env:
+          POSTGRAPHILE_DB_HOST: postgres
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: testpassword
           POSTGRES_DB: auth_db_test
-        # Options to pass to the docker create command
-        # This health check is crucial. It ensures that the subsequent steps
-        # will not run until the PostgreSQL server is fully initialized and ready.
+        # The health check ensures the database is ready before tests start
         options: >-
           --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
@@ -45,22 +32,21 @@ jobs:
 
     # A job contains a sequence of tasks called steps
     steps:
-      # Step 1: Checkout the main application code into a subdirectory
+      # Step 1: Checkout the main application code
       - name: Checkout application code
         uses: actions/checkout@v4
         with:
           path: main-app
 
-      # Step 2: Securely checkout the private configuration repository
+      # Step 2: Checkout the public configuration repository
+      # --- THIS IS THE FIX: No token is needed for a public repo ---
       - name: Checkout config repository
         uses: actions/checkout@v4
         with:
-          repository: brunosilveiradosanjos/apl-ms-auth-config # IMPORTANT: Your private config repo
-          token: ${{ secrets.GH_PAT }} # A Personal Access Token stored in GitHub Secrets
+          repository: brunosilveiradosanjos/apl-ms-auth-config
           path: config
 
-      # Step 3: Manually download and install the latest versions of sops, age, and yq.
-      # This is more reliable than relying on apt-get or potentially unavailable actions.
+      # Step 3: Manually download and install the latest versions of sops, age, and yq
       - name: Setup SOPS, age, and yq
         run: |
           # Install SOPS
@@ -84,8 +70,6 @@ jobs:
       - name: Decrypt and Export Secrets
         id: decrypt_secrets
         run: |
-          # Use the SOPS_AGE_KEY secret to decrypt the development config
-          # Then use yq to convert YAML to 'KEY=VALUE' format and append to $GITHUB_ENV
           sops --decrypt config/development/config.yml | \
           yq -r 'to_entries | .[] | .key + "=" + .value' >> $GITHUB_ENV
         env:
@@ -121,6 +105,4 @@ jobs:
       # Step 10: Run the end-to-end tests
       - name: Run E2E tests
         working-directory: ${{ env.WORK_DIR }}
-        # The test runner now has access to all the decrypted environment variables
-        # because they were exported to $GITHUB_ENV in the decrypt step.
         run: npm run test:e2e:run
