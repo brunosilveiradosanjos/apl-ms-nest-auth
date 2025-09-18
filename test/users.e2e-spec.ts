@@ -1,5 +1,3 @@
-import * as dotenv from 'dotenv'
-dotenv.config({ path: '.env' })
 import { Test, TestingModule } from '@nestjs/testing'
 import { Client } from 'pg'
 import * as fs from 'fs'
@@ -9,7 +7,7 @@ import request from 'supertest'
 import { AppModule } from '@/app.module'
 import { ZodValidationPipe } from 'nestjs-zod'
 import { generateUniqueId } from '@/shared/utils/generate-unique-id'
-import { ConfigService } from '@nestjs/config'
+import { ConfigModule, ConfigService } from '@nestjs/config'
 
 describe('UsersController (e2e)', () => {
   let app: INestApplication
@@ -21,8 +19,14 @@ describe('UsersController (e2e)', () => {
     schema = `test_${generateUniqueId().replace(/-/g, '_')}`
     process.env.POSTGRES_SCHEMA = schema
 
+    // Create a lightweight module just to get an initialized ConfigService
+    const configModule = await Test.createTestingModule({
+      imports: [ConfigModule.forRoot({ envFilePath: ['.env'] })],
+      providers: [ConfigService],
+    }).compile()
+    const configService = configModule.get<ConfigService>(ConfigService)
+
     // This now works because dotenv has loaded the .env file
-    const configService = new ConfigService()
     pgClient = new Client({
       host: configService.get<string>('DB_HOST'),
       port: configService.get<number>('DB_PORT'),
@@ -30,12 +34,12 @@ describe('UsersController (e2e)', () => {
       password: configService.get<string>('DB_PASSWORD'),
       database: configService.get<string>('DB_DATABASE'),
     })
+    await pgClient.connect()
     console.log('PostgreSQL host:', pgClient.host)
     console.log('PostgreSQL port:', pgClient.port)
     console.log('PostgreSQL user:', pgClient.user)
     console.log('PostgreSQL password:', pgClient.password)
     console.log('PostgreSQL database:', pgClient.database)
-    await pgClient.connect()
 
     await pgClient.query(`CREATE SCHEMA "${schema}"`)
     const initSql = fs.readFileSync(path.join(__dirname, '../db/init.sql'), 'utf-8')
