@@ -60,17 +60,12 @@ jobs:
           path: config
 
       # Step 3: Install SOPS and age using a dedicated GitHub Action
-      - name: Setup SOPS and age
-        uses: mdgreenwald/sops-action@v2
-        with: # The action is deprecated, but it still works.
-          sops-version: 'latest'
-          age-version: 'latest'
+      - name: Setup SOPS
+        uses: getsops/sops-action@v1
 
       # Step 4: Install yq using its dedicated GitHub Action
       - name: Setup yq
         uses: mikefarah/yq@v4
-        with:
-          cmd: 'v4'
 
       # Step 5: Decrypt the config file and transform it into a .env file for the application
       - name: Decrypt configuration and create .env file
