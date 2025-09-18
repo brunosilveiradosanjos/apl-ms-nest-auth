@@ -68,38 +68,34 @@ jobs:
           wget "https://github.com/getsops/sops/releases/download/v${SOPS_VERSION}/sops-v${SOPS_VERSION}.linux.amd64"
           sudo mv "sops-v${SOPS_VERSION}.linux.amd64" /usr/local/bin/sops
           sudo chmod +x /usr/local/bin/sops
-
           # Install age
           AGE_VERSION=$(curl -s "https://api.github.com/repos/FiloSottile/age/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")' | sed 's/v//')
           wget "https://github.com/FiloSottile/age/releases/download/v${AGE_VERSION}/age-v${AGE_VERSION}-linux-amd64.tar.gz"
           tar -xzf "age-v${AGE_VERSION}-linux-amd64.tar.gz"
           sudo mv age/age /usr/local/bin/
           sudo mv age/age-keygen /usr/local/bin/
-
           # Install yq
           YQ_VERSION=$(curl -s "https://api.github.com/repos/mikefarah/yq/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")' | sed 's/v//')
           wget "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64"
           sudo mv yq_linux_amd64 /usr/local/bin/yq
           sudo chmod +x /usr/local/bin/yq
 
-      # Step 5: Decrypt the config file and transform it into a .env file for the application
-      - name: Decrypt configuration and create .env file
+      # Step 4: Decrypt secrets and export them as environment variables for the job
+      - name: Decrypt and Export Secrets
+        id: decrypt_secrets
         run: |
           # Use the SOPS_AGE_KEY secret to decrypt the development config
+          # Then use yq to convert YAML to 'KEY=VALUE' format and append to $GITHUB_ENV
           sops --decrypt config/development/config.yml | \
-          # Use yq to convert the YAML to a 'KEY="VALUE"' format
-          yq -r 'to_entries | .[] | .key + "=" + "\"" + .value + "\""' \
-          # Save the output to a .env file inside the main application's directory
-          > main-app/.env
+          yq -r 'to_entries | .[] | .key + "=" + .value' >> $GITHUB_ENV
         env:
-          # The SOPS_AGE_KEY must be stored in GitHub repository secrets
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
 
-      # Step 6: Set the working directory for all subsequent steps
+      # Step 5: Set the working directory for all subsequent steps
       - name: Set working directory
         run: echo "WORK_DIR=main-app" >> $GITHUB_ENV
 
-      # Step 7: Setup Node.js environment
+      # Step 6: Setup Node.js environment
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -107,24 +103,24 @@ jobs:
           cache: 'npm'
           cache-dependency-path: '${{ env.WORK_DIR }}/package-lock.json'
 
-      # Step 8: Install application dependencies
+      # Step 7: Install application dependencies
       - name: Install dependencies
         working-directory: ${{ env.WORK_DIR }}
         run: npm ci
 
-      # Step 9: Run the linter
+      # Step 8: Run the linter
       - name: Run lint check
         working-directory: ${{ env.WORK_DIR }}
         run: npm run lint
 
-      # Step 10: Run the unit tests
+      # Step 9: Run the unit tests
       - name: Run unit tests
         working-directory: ${{ env.WORK_DIR }}
         run: npm test
 
-      # Step 11: We must call 'test:e2e:run' directly. The 'db:start' and 'db:wait'
-      # commands are not needed here because the 'services' block at the top
-      # of the job already handles starting and health-checking the database.
+      # Step 10: Run the end-to-end tests
       - name: Run E2E tests
         working-directory: ${{ env.WORK_DIR }}
+        # The test runner now has access to all the decrypted environment variables
+        # because they were exported to $GITHUB_ENV in the decrypt step.
         run: npm run test:e2e:run
