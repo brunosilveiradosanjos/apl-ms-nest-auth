@@ -2,13 +2,13 @@ import type { Config } from 'jest'
 
 /**
  * This configuration is for END-TO-END (E2E) TESTS.
- * It is located in the 'test' directory and is used by 'npm run test:e2e'.
- * This configuration is now fully self-contained and does NOT extend the base config.
+ * It is located in the 'test' directory and used by 'npm run test:e2e'.
+ * This configuration is now fully self-contained to avoid config inheritance issues.
  */
 const config: Config = {
   // Use 'ts-jest' to enable TypeScript support
   preset: 'ts-jest',
-  // Use the Node.js environment for testing backend code
+  // The test environment that will be used for testing
   testEnvironment: 'node',
   // The root directory is one level up (the project root) from this file's location
   rootDir: '..',
@@ -24,6 +24,8 @@ const config: Config = {
   clearMocks: true,
   // Display individual test results
   verbose: true,
+  // Increase the default timeout for E2E tests which can be slower
+  testTimeout: 30000,
 }
 
 export default config

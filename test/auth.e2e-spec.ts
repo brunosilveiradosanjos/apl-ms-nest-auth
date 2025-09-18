@@ -20,26 +20,17 @@ describe('AuthController (e2e)', () => {
   const API_PREFIX = '/api/v1'
 
   beforeEach(async () => {
-    // 1. Generate a unique schema name for this test
     schema = `test_${generateUniqueId().replace(/-/g, '_')}`
-
-    // 2. Set the environment variable so NestJS connects to our new schema
     process.env.POSTGRES_SCHEMA = schema
 
-    // 3. Connect to the database with a raw client to manage the schema
-    // Create a lightweight module just to get an initialized ConfigService
-    const configModule = await Test.createTestingModule({
-      imports: [ConfigModule.forRoot({ envFilePath: ['.env'] })],
-      providers: [ConfigService],
-    }).compile()
-    const configService = configModule.get<ConfigService>(ConfigService)
-
+    // This setup now correctly reads credentials from process.env, which is
+    // populated by either the local .env file or the CI environment secrets.
     pgClient = new Client({
-      host: configService.get<string>('DB_HOST'),
-      port: configService.get<number>('DB_PORT'),
-      user: configService.get<string>('DB_USERNAME'),
-      password: configService.get<string>('DB_PASSWORD'),
-      database: configService.get<string>('DB_DATABASE'),
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT,
+      user: process.env.DB_USERNAME,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_DATABASE,
     })
 
     await pgClient.connect()
@@ -55,7 +46,7 @@ describe('AuthController (e2e)', () => {
     const initSql = fs.readFileSync(path.join(__dirname, '../db/init.sql'), 'utf-8')
     await pgClient.query(`SET search_path TO "${schema}";\n${initSql}`)
 
-    // 5. Now, bootstrap the NestJS application for the test
+    // Bootstrap the NestJS application
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile()
