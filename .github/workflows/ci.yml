@@ -75,6 +75,10 @@ jobs:
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
 
+      # Override the DB_HOST for the CI environment to use the service name.
+      - name: Override DB Host for CI
+        run: echo "DB_HOST=postgres" >> $GITHUB_ENV
+
       # Step 5: Set the working directory for all subsequent steps
       - name: Set working directory
         run: echo "WORK_DIR=main-app" >> $GITHUB_ENV
