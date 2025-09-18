@@ -59,13 +59,28 @@ jobs:
           token: ${{ secrets.GH_PAT }} # A Personal Access Token stored in GitHub Secrets
           path: config
 
-      # Step 3: Install SOPS and age using a dedicated GitHub Action
-      - name: Setup SOPS
-        uses: getsops/sops-action@v1
+      # Step 3: Manually download and install the latest versions of sops, age, and yq.
+      # This is more reliable than relying on apt-get or potentially unavailable actions.
+      - name: Setup SOPS, age, and yq
+        run: |
+          # Install SOPS
+          SOPS_VERSION=$(curl -s "https://api.github.com/repos/getsops/sops/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")' | sed 's/v//')
+          wget "https://github.com/getsops/sops/releases/download/v${SOPS_VERSION}/sops-v${SOPS_VERSION}.linux.amd64"
+          sudo mv "sops-v${SOPS_VERSION}.linux.amd64" /usr/local/bin/sops
+          sudo chmod +x /usr/local/bin/sops
 
-      # Step 4: Install yq using its dedicated GitHub Action
-      - name: Setup yq
-        uses: mikefarah/yq@v4
+          # Install age
+          AGE_VERSION=$(curl -s "https://api.github.com/repos/FiloSottile/age/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")' | sed 's/v//')
+          wget "https://github.com/FiloSottile/age/releases/download/v${AGE_VERSION}/age-v${AGE_VERSION}-linux-amd64.tar.gz"
+          tar -xzf "age-v${AGE_VERSION}-linux-amd64.tar.gz"
+          sudo mv age/age /usr/local/bin/
+          sudo mv age/age-keygen /usr/local/bin/
+
+          # Install yq
+          YQ_VERSION=$(curl -s "https://api.github.com/repos/mikefarah/yq/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")' | sed 's/v//')
+          wget "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64"
+          sudo mv yq_linux_amd64 /usr/local/bin/yq
+          sudo chmod +x /usr/local/bin/yq
 
       # Step 5: Decrypt the config file and transform it into a .env file for the application
       - name: Decrypt configuration and create .env file
