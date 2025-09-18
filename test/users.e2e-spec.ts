@@ -1,8 +1,5 @@
-// --- FIX: Add these two lines at the very top ---
 import * as dotenv from 'dotenv'
 dotenv.config({ path: '.env' })
-// ---------------------------------------------
-
 import { Test, TestingModule } from '@nestjs/testing'
 import { Client } from 'pg'
 import * as fs from 'fs'
@@ -33,6 +30,11 @@ describe('UsersController (e2e)', () => {
       password: configService.get<string>('DB_PASSWORD'),
       database: configService.get<string>('DB_DATABASE'),
     })
+    console.log('PostgreSQL host:', pgClient.host)
+    console.log('PostgreSQL port:', pgClient.port)
+    console.log('PostgreSQL user:', pgClient.user)
+    console.log('PostgreSQL password:', pgClient.password)
+    console.log('PostgreSQL database:', pgClient.database)
     await pgClient.connect()
 
     await pgClient.query(`CREATE SCHEMA "${schema}"`)

@@ -1,3 +1,5 @@
+import * as dotenv from 'dotenv'
+dotenv.config({ path: '.env' })
 import { Test, TestingModule } from '@nestjs/testing'
 import { INestApplication } from '@nestjs/common'
 import request from 'supertest'
@@ -33,6 +35,11 @@ describe('AuthController (e2e)', () => {
       password: configService.get<string>('DB_PASSWORD'),
       database: configService.get<string>('DB_DATABASE'),
     })
+    console.log('PostgreSQL host:', pgClient.host)
+    console.log('PostgreSQL port:', pgClient.port)
+    console.log('PostgreSQL user:', pgClient.user)
+    console.log('PostgreSQL password:', pgClient.password)
+    console.log('PostgreSQL database:', pgClient.database)
     await pgClient.connect()
 
     // 4. Create the schema and load the init script into it
