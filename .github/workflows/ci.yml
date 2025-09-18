@@ -10,36 +10,36 @@ on:
   workflow_dispatch:
 
 jobs:
-  # This workflow contains a single job called "test"
   test:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
-    # Service containers provide a running PostgreSQL database for the E2E tests
+    # Set a default working directory for all 'run' steps in this job.
+    # This avoids repeating 'working-directory:' in most steps.
+    defaults:
+      run:
+        working-directory: ./main-app
+
     services:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRAPHILE_DB_HOST: postgres
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: testpassword
           POSTGRES_DB: auth_db_test
-        # The health check ensures the database is ready before tests start
+        # The health check is crucial: it ensures the DB is ready before steps run.
         options: >-
           --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
-          - 5432:5432 # Maps the service port to the runner's localhost
+          - 5432:5432
 
-    # A job contains a sequence of tasks called steps
     steps:
-      # Step 1: Checkout the main application code
+      # Step 1: Checkout the main application code into the 'main-app' directory
       - name: Checkout application code
         uses: actions/checkout@v4
         with:
           path: main-app
 
-      # Step 2: Checkout the public configuration repository
-      # --- THIS IS THE FIX: No token is needed for a public repo ---
+      # Step 2: Checkout the public configuration repository into the 'config' directory
       - name: Checkout config repository
         uses: actions/checkout@v4
         with:
@@ -47,7 +47,10 @@ jobs:
           path: config
 
       # Step 3: Manually download and install the latest versions of sops, age, and yq
+      # This step uses your original, trusted script for tool setup.
       - name: Setup SOPS, age, and yq
+        # This step must run from the root, so we override the job's default working directory.
+        working-directory: ./
         run: |
           # Install SOPS
           SOPS_VERSION=$(curl -s "https://api.github.com/repos/getsops/sops/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")' | sed 's/v//')
@@ -68,46 +71,40 @@ jobs:
 
       # Step 4: Decrypt secrets and export them as environment variables for the job
       - name: Decrypt and Export Secrets
+        working-directory: ./
         run: |
           sops --decrypt config/development/config.yml | \
           yq -r 'to_entries | .[] | .key + "=" + "\"" + .value + "\""' >> $GITHUB_ENV
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
 
-      # Override the DB_HOST for the CI environment to use the service name.
+      # Step 5: Override variables for the CI environment
       - name: Override DB Host and Set Node Env for CI
+        working-directory: ./
         run: |
           echo "DB_HOST=postgres" >> $GITHUB_ENV
           echo "NODE_ENV=ci" >> $GITHUB_ENV
 
-      # Step 5: Set the working directory for all subsequent steps
-      - name: Set working directory
-        run: echo "WORK_DIR=main-app" >> $GITHUB_ENV
-
-      # Step 6: Setup Node.js environment
+      # Step 6: Setup Node.js environment with caching
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           cache: 'npm'
-          cache-dependency-path: '${{ env.WORK_DIR }}/package-lock.json'
+          cache-dependency-path: 'main-app/package-lock.json'
 
-      # Step 7: Install application dependencies
+      # Step 7: Install application dependencies (runs in ./main-app due to defaults)
       - name: Install dependencies
-        working-directory: ${{ env.WORK_DIR }}
         run: npm ci
 
       # Step 8: Run the linter
       - name: Run lint check
-        working-directory: ${{ env.WORK_DIR }}
         run: npm run lint
 
       # Step 9: Run the unit tests
       - name: Run unit tests
-        working-directory: ${{ env.WORK_DIR }}
         run: npm test
 
       # Step 10: Run the end-to-end tests
       - name: Run E2E tests
-        working-directory: ${{ env.WORK_DIR }}
         run: npm run test:e2e:run
