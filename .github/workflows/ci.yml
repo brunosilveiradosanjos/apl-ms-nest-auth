@@ -122,9 +122,9 @@ jobs:
         working-directory: ${{ env.WORK_DIR }}
         run: npm test
 
-      # Step 11: Run the end-to-end tests
-      # No 'env' block is needed here because the app will now automatically
-      # load its configuration from the .env file we created in the decrypt step.
+      # Step 11: We must call 'test:e2e:run' directly. The 'db:start' and 'db:wait'
+      # commands are not needed here because the 'services' block at the top
+      # of the job already handles starting and health-checking the database.
       - name: Run E2E tests
         working-directory: ${{ env.WORK_DIR }}
-        run: npm run test:e2e
+        run: npm run test:e2e:run
