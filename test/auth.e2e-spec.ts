@@ -8,7 +8,6 @@ import { ZodValidationPipe } from 'nestjs-zod'
 import { Client } from 'pg'
 import * as fs from 'fs'
 import * as path from 'path'
-import { ConfigModule, ConfigService } from '@nestjs/config'
 import { generateUniqueId } from '@/shared/utils/generate-unique-id'
 import { TokenRequestDto } from '@/modules/auth/infrastructure/http/dto/token-request.dto'
 
