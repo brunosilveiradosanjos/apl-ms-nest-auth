@@ -14,11 +14,11 @@ jobs:
     runs-on: ubuntu-latest
 
     # Set a default working directory for all 'run' steps in this job.
-    # This avoids repeating 'working-directory:' in most steps.
     defaults:
       run:
         working-directory: ./main-app
 
+    # Service containers provide a running PostgreSQL database for the E2E tests
     services:
       postgres:
         image: postgres:15-alpine
@@ -26,20 +26,21 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: testpassword
           POSTGRES_DB: auth_db_test
-        # The health check is crucial: it ensures the DB is ready before steps run.
+        # The health check ensures the database is ready before tests start
         options: >-
           --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
-          - 5432:5432
+          - 5432:5432 # Maps the service port to the runner's localhost
 
+    # A job contains a sequence of tasks called steps
     steps:
-      # Step 1: Checkout the main application code into the 'main-app' directory
+      # Step 1: Checkout the main application code
       - name: Checkout application code
         uses: actions/checkout@v4
         with:
           path: main-app
 
-      # Step 2: Checkout the public configuration repository into the 'config' directory
+      # Step 2: Checkout the public configuration repository
       - name: Checkout config repository
         uses: actions/checkout@v4
         with:
@@ -47,9 +48,7 @@ jobs:
           path: config
 
       # Step 3: Manually download and install the latest versions of sops, age, and yq
-      # This step uses your original, trusted script for tool setup.
       - name: Setup SOPS, age, and yq
-        # This step must run from the root, so we override the job's default working directory.
         working-directory: ./
         run: |
           # Install SOPS
@@ -78,14 +77,14 @@ jobs:
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
 
-      # Step 5: Override variables for the CI environment
+      # Step 5: Override the DB_HOST for the CI environment to use the service name.
       - name: Override DB Host and Set Node Env for CI
         working-directory: ./
         run: |
           echo "DB_HOST=postgres" >> $GITHUB_ENV
           echo "NODE_ENV=ci" >> $GITHUB_ENV
 
-      # Step 6: Setup Node.js environment with caching
+      # Step 6: Setup Node.js environment
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -93,18 +92,34 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'main-app/package-lock.json'
 
-      # Step 7: Install application dependencies (runs in ./main-app due to defaults)
+      # Step 7: Install application dependencies
       - name: Install dependencies
         run: npm ci
 
-      # Step 8: Run the linter
+      # --- REMOVED PRISMA STEPS ---
+      # The 'prisma generate' and 'prisma migrate' steps are no longer needed.
+
+      # Step 8: Initialize Database from SQL file
+      # This is the NEW step. It uses the 'psql' client to run your init script.
+      - name: Initialize Database Schema
+        # The PGPASSWORD env var is used by psql to authenticate without a prompt.
+        env:
+          PGPASSWORD: testpassword # This must match the password in the services block
+        run: |
+          # Wait a moment to ensure the DB service is fully accepting connections.
+          sleep 5
+          # Execute the SQL script against the 'postgres' service container.
+          # -h: hostname, -U: user, -d: database name, -f: file
+          psql -h postgres -U postgres -d auth_db_test -f main-app/db/init.sql
+
+      # Step 9: Run the linter
       - name: Run lint check
         run: npm run lint
 
-      # Step 9: Run the unit tests
+      # Step 10: Run the unit tests
       - name: Run unit tests
-        run: npm test
+        run: npm run test
 
-      # Step 10: Run the end-to-end tests
+      # Step 11: Run the end-to-end tests
       - name: Run E2E tests
         run: npm run test:e2e:run
