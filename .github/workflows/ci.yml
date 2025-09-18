@@ -68,10 +68,9 @@ jobs:
 
       # Step 4: Decrypt secrets and export them as environment variables for the job
       - name: Decrypt and Export Secrets
-        id: decrypt_secrets
         run: |
           sops --decrypt config/development/config.yml | \
-          yq -r 'to_entries | .[] | .key + "=" + .value' >> $GITHUB_ENV
+          yq -r 'to_entries | .[] | .key + "=" + "\"" + .value + "\""' >> $GITHUB_ENV
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
 
