@@ -20,7 +20,7 @@
     "db:start": "docker-compose up -d",
     "db:stop": "docker-compose down",
     "db:wait": "wait-on tcp:5432 -t 30000",
-    "test:e2e:run": "jest --config test/jest-e2e.config.ts --runInBand",
+    "test:e2e:run": "jest --config test/jest-e2e.config.ts --runInBand --forceExit",
     "test:e2e": "npm-run-all db:start db:wait test:e2e:run"
   },
   "dependencies": {
