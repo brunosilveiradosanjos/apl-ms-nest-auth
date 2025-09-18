@@ -34,13 +34,14 @@ describe('UsersController (e2e)', () => {
       password: configService.get<string>('DB_PASSWORD'),
       database: configService.get<string>('DB_DATABASE'),
     })
-    await pgClient.connect()
+
     console.log('PostgreSQL host:', pgClient.host)
     console.log('PostgreSQL port:', pgClient.port)
     console.log('PostgreSQL user:', pgClient.user)
     console.log('PostgreSQL password:', pgClient.password)
     console.log('PostgreSQL database:', pgClient.database)
 
+    await pgClient.connect()
     await pgClient.query(`CREATE SCHEMA "${schema}"`)
     const initSql = fs.readFileSync(path.join(__dirname, '../db/init.sql'), 'utf-8')
     await pgClient.query(`SET search_path TO "${schema}";\n${initSql}`)

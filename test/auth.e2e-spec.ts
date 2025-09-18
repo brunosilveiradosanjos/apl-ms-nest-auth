@@ -32,13 +32,13 @@ describe('AuthController (e2e)', () => {
       database: process.env.DB_DATABASE,
     })
 
-    await pgClient.connect()
-
     console.log('PostgreSQL host:', pgClient.host)
     console.log('PostgreSQL port:', pgClient.port)
     console.log('PostgreSQL user:', pgClient.user)
     console.log('PostgreSQL password:', pgClient.password)
     console.log('PostgreSQL database:', pgClient.database)
+
+    await pgClient.connect()
 
     // 4. Create the schema and load the init script into it
     await pgClient.query(`CREATE SCHEMA "${schema}"`)
