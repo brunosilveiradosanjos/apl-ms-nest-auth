@@ -18,7 +18,6 @@ describe('AuthController (e2e)', () => {
 
   beforeEach(async () => {
     schema = `test_${generateUniqueId().replace(/-/g, '_')}`
-    console.log('Using schema:', schema)
     process.env.POSTGRES_SCHEMA = schema
 
     // This setup now correctly reads credentials from process.env, which is
