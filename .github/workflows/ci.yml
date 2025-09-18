@@ -59,13 +59,20 @@ jobs:
           token: ${{ secrets.GH_PAT }} # A Personal Access Token stored in GitHub Secrets
           path: config
 
-      # Step 3: Install SOPS, age, and yq (a YAML processor) on the runner
-      - name: Setup SOPS and yq
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y sops age yq
+      # Step 3: Install SOPS and age using a dedicated GitHub Action
+      - name: Setup SOPS and age
+        uses: mdgreenwald/sops-action@v2
+        with: # The action is deprecated, but it still works.
+          sops-version: 'latest'
+          age-version: 'latest'
 
-      # Step 4: Decrypt the config file and transform it into a .env file for the application
+      # Step 4: Install yq using its dedicated GitHub Action
+      - name: Setup yq
+        uses: mikefarah/yq@v4
+        with:
+          cmd: 'v4'
+
+      # Step 5: Decrypt the config file and transform it into a .env file for the application
       - name: Decrypt configuration and create .env file
         run: |
           # Use the SOPS_AGE_KEY secret to decrypt the development config
@@ -78,11 +85,11 @@ jobs:
           # The SOPS_AGE_KEY must be stored in GitHub repository secrets
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
 
-      # Step 5: Set the working directory for all subsequent steps
+      # Step 6: Set the working directory for all subsequent steps
       - name: Set working directory
         run: echo "WORK_DIR=main-app" >> $GITHUB_ENV
 
-      # Step 6: Setup Node.js environment
+      # Step 7: Setup Node.js environment
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -90,22 +97,22 @@ jobs:
           cache: 'npm'
           cache-dependency-path: '${{ env.WORK_DIR }}/package-lock.json'
 
-      # Step 7: Install application dependencies
+      # Step 8: Install application dependencies
       - name: Install dependencies
         working-directory: ${{ env.WORK_DIR }}
         run: npm ci
 
-      # Step 8: Run the linter
+      # Step 9: Run the linter
       - name: Run lint check
         working-directory: ${{ env.WORK_DIR }}
         run: npm run lint
 
-      # Step 9: Run the unit tests
+      # Step 10: Run the unit tests
       - name: Run unit tests
         working-directory: ${{ env.WORK_DIR }}
         run: npm test
 
-      # Step 10: Run the end-to-end tests
+      # Step 11: Run the end-to-end tests
       # No 'env' block is needed here because the app will now automatically
       # load its configuration from the .env file we created in the decrypt step.
       - name: Run E2E tests
