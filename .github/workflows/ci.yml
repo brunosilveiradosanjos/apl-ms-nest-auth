@@ -18,8 +18,11 @@ jobs:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
-    # Service containers are Docker containers that provide a simple and portable way
-    # to host services that you might need to test or operate your application.
+    # Define job-level permissions. 'contents: read' is needed to checkout other repositories.
+    permissions:
+      contents: read
+
+    # Service containers provide a running PostgreSQL database for the E2E tests
     services:
       # The label of the service container
       postgres:
@@ -34,51 +37,75 @@ jobs:
         # This health check is crucial. It ensures that the subsequent steps
         # will not run until the PostgreSQL server is fully initialized and ready.
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
-          # Maps port 5432 on the service container to port 5432 on the host runner.
-          # This allows the tests to connect to the database via localhost:5432.
-          - 5432:5432
+          - 5432:5432 # Maps the service port to the runner's localhost
 
     # A job contains a sequence of tasks called steps
     steps:
-      # Step 1: Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - name: Checkout code
+      # Step 1: Checkout the main application code into a subdirectory
+      - name: Checkout application code
         uses: actions/checkout@v4
+        with:
+          path: main-app
 
-      # Step 2: Sets up a Node.js environment for use in actions
+      # Step 2: Securely checkout the private configuration repository
+      - name: Checkout config repository
+        uses: actions/checkout@v4
+        with:
+          repository: brunosilveiradosanjos/apl-ms-auth-config # IMPORTANT: Your private config repo
+          token: ${{ secrets.GH_PAT }} # A Personal Access Token stored in GitHub Secrets
+          path: config
+
+      # Step 3: Install SOPS, age, and yq (a YAML processor) on the runner
+      - name: Setup SOPS and yq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sops age yq
+
+      # Step 4: Decrypt the config file and transform it into a .env file for the application
+      - name: Decrypt configuration and create .env file
+        run: |
+          # Use the SOPS_AGE_KEY secret to decrypt the development config
+          sops --decrypt config/development/config.yml | \
+          # Use yq to convert the YAML to a 'KEY="VALUE"' format
+          yq -r 'to_entries | .[] | .key + "=" + "\"" + .value + "\""' \
+          # Save the output to a .env file inside the main application's directory
+          > main-app/.env
+        env:
+          # The SOPS_AGE_KEY must be stored in GitHub repository secrets
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+
+      # Step 5: Set the working directory for all subsequent steps
+      - name: Set working directory
+        run: echo "WORK_DIR=main-app" >> $GITHUB_ENV
+
+      # Step 6: Setup Node.js environment
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-          cache: 'npm' # Caches npm dependencies for faster runs
+          cache: 'npm'
+          cache-dependency-path: '${{ env.WORK_DIR }}/package-lock.json'
 
-      # Step 3: Install dependencies using 'npm ci' which is faster and more secure for CI
+      # Step 7: Install application dependencies
       - name: Install dependencies
+        working-directory: ${{ env.WORK_DIR }}
         run: npm ci
 
-      # Step 4: Run the linter to check for code style issues
+      # Step 8: Run the linter
       - name: Run lint check
+        working-directory: ${{ env.WORK_DIR }}
         run: npm run lint
 
-      # Step 5: Run the unit tests
+      # Step 9: Run the unit tests
       - name: Run unit tests
+        working-directory: ${{ env.WORK_DIR }}
         run: npm test
 
-      # Step 6: Run the end-to-end tests
-      # We use 'test:e2e:run' because the database service is already started and managed by GitHub Actions.
-      # We don't need our 'db:start' or 'db:wait' scripts here.
+      # Step 10: Run the end-to-end tests
+      # No 'env' block is needed here because the app will now automatically
+      # load its configuration from the .env file we created in the decrypt step.
       - name: Run E2E tests
-        run: npm run test:e2e:run
-        # Environment variables needed for the E2E tests to connect to the service container
-        env:
-          DB_HOST: localhost # The service is mapped to localhost on the runner
-          DB_PORT: 5432
-          DB_USERNAME: postgres
-          DB_PASSWORD: testpassword
-          DB_DATABASE: auth_db_test
-          # For CI, this secret just needs to be a valid string. For production, use GitHub Secrets.
-          JWT_SECRET: a_super_secret_ci_key_that_is_long_enough_to_be_valid_for_tests
+        working-directory: ${{ env.WORK_DIR }}
+        run: npm run test:e2e
