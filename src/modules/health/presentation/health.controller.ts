@@ -1,6 +1,6 @@
 import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
-import { HealthCheckUseCase, OverallHealthStatus } from '../application/health.check.use-case'
+import { HealthCheckUseCase } from '@/modules/health/application/health.check.use-case'
 import { HealthCheckResponseDto } from './dto/health-check-response.dto'
 
 @ApiTags('Health')

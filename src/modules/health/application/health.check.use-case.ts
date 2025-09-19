@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { HealthIndicator, HealthResult } from '../domain/health.indicator'
+import { HealthIndicator } from '../domain/health.indicator'
 
 export interface OverallHealthStatus {
   status: 'ok' | 'error'
