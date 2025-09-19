@@ -10,13 +10,10 @@ on:
   workflow_dispatch:
 
 jobs:
+  # This workflow contains a single job called "test"
   test:
+    # The type of runner that the job will run on
     runs-on: ubuntu-latest
-
-    # Set a default working directory for all 'run' steps in this job.
-    defaults:
-      run:
-        working-directory: ./main-app
 
     # Service containers provide a running PostgreSQL database for the E2E tests
     services:
@@ -49,7 +46,6 @@ jobs:
 
       # Step 3: Manually download and install the latest versions of sops, age, and yq
       - name: Setup SOPS, age, and yq
-        working-directory: ./
         run: |
           # Install SOPS
           SOPS_VERSION=$(curl -s "https://api.github.com/repos/getsops/sops/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")' | sed 's/v//')
@@ -70,19 +66,27 @@ jobs:
 
       # Step 4: Decrypt secrets and export them as environment variables for the job
       - name: Decrypt and Export Secrets
-        working-directory: ./
         run: |
           sops --decrypt config/development/config.yml | \
           yq -r 'to_entries | .[] | .key + "=" + "\"" + .value + "\""' >> $GITHUB_ENV
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
 
-      # Step 5: Override the DB_HOST for the CI environment to use the service name.
-      - name: Override DB Host and Set Node Env for CI
-        working-directory: ./
+      # --- THIS IS THE FIX ---
+      # This new step overwrites the DB credentials from your secrets file
+      # with the static ones used by the 'services' block above.
+      # This ensures your application connects to the correct test database.
+      - name: Override DB Credentials for CI
         run: |
+          echo "DB_USERNAME=postgres" >> $GITHUB_ENV
+          echo "DB_PASSWORD=testpassword" >> $GITHUB_ENV
+          echo "DB_DATABASE=auth_db_test" >> $GITHUB_ENV
           echo "DB_HOST=postgres" >> $GITHUB_ENV
           echo "NODE_ENV=ci" >> $GITHUB_ENV
+
+      # Step 5: Set the working directory for all subsequent steps
+      - name: Set working directory
+        run: echo "WORK_DIR=main-app" >> $GITHUB_ENV
 
       # Step 6: Setup Node.js environment
       - name: Setup Node.js
@@ -90,35 +94,24 @@ jobs:
         with:
           node-version: '20.x'
           cache: 'npm'
-          cache-dependency-path: 'main-app/package-lock.json'
+          cache-dependency-path: '${{ env.WORK_DIR }}/package-lock.json'
 
       # Step 7: Install application dependencies
       - name: Install dependencies
+        working-directory: ${{ env.WORK_DIR }}
         run: npm ci
 
-      # --- REMOVED PRISMA STEPS ---
-      # The 'prisma generate' and 'prisma migrate' steps are no longer needed.
-
-      # Step 8: Initialize Database from SQL file
-      # This is the NEW step. It uses the 'psql' client to run your init script.
-      - name: Initialize Database Schema
-        # The PGPASSWORD env var is used by psql to authenticate without a prompt.
-        env:
-          PGPASSWORD: ${{ env.DB_PASSWORD }}
-        run: |
-          # Wait a moment to ensure the DB service is fully accepting connections.
-          sleep 5
-          # Execute the SQL script using the dynamic credentials from your config.
-          psql -h postgres -U ${{ env.DB_USERNAME }} -d ${{ env.DB_DATABASE }} -f main-app/db/init.sql
-
-      # Step 9: Run the linter
+      # Step 8: Run the linter
       - name: Run lint check
+        working-directory: ${{ env.WORK_DIR }}
         run: npm run lint
 
-      # Step 10: Run the unit tests
+      # Step 9: Run the unit tests
       - name: Run unit tests
+        working-directory: ${{ env.WORK_DIR }}
         run: npm run test
 
-      # Step 11: Run the end-to-end tests
+      # Step 10: Run the end-to-end tests
       - name: Run E2E tests
+        working-directory: ${{ env.WORK_DIR }}
         run: npm run test:e2e:run
