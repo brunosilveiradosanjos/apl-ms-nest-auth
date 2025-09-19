@@ -10,26 +10,15 @@ on:
   workflow_dispatch:
 
 jobs:
-  # This workflow contains a single job called "test"
-  test:
-    # The type of runner that the job will run on
+  # This job validates code quality with linting and unit tests
+  validate:
     runs-on: ubuntu-latest
 
-    # Service containers provide a running PostgreSQL database for the E2E tests
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: testpassword
-          POSTGRES_DB: auth_db_test
-        # The health check ensures the database is ready before tests start
-        options: >-
-          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-        ports:
-          - 5432:5432 # Maps the service port to the runner's localhost
+    # Set a default working directory for all 'run' steps in this job
+    defaults:
+      run:
+        working-directory: ./main-app
 
-    # A job contains a sequence of tasks called steps
     steps:
       # Step 1: Checkout the main application code
       - name: Checkout application code
@@ -37,81 +26,22 @@ jobs:
         with:
           path: main-app
 
-      # Step 2: Checkout the public configuration repository
-      - name: Checkout config repository
-        uses: actions/checkout@v4
-        with:
-          repository: brunosilveiradosanjos/apl-ms-auth-config
-          path: config
-
-      # Step 3: Manually download and install the latest versions of sops, age, and yq
-      - name: Setup SOPS, age, and yq
-        run: |
-          # Install SOPS
-          SOPS_VERSION=$(curl -s "https://api.github.com/repos/getsops/sops/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")' | sed 's/v//')
-          wget "https://github.com/getsops/sops/releases/download/v${SOPS_VERSION}/sops-v${SOPS_VERSION}.linux.amd64"
-          sudo mv "sops-v${SOPS_VERSION}.linux.amd64" /usr/local/bin/sops
-          sudo chmod +x /usr/local/bin/sops
-          # Install age
-          AGE_VERSION=$(curl -s "https://api.github.com/repos/FiloSottile/age/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")' | sed 's/v//')
-          wget "https://github.com/FiloSottile/age/releases/download/v${AGE_VERSION}/age-v${AGE_VERSION}-linux-amd64.tar.gz"
-          tar -xzf "age-v${AGE_VERSION}-linux-amd64.tar.gz"
-          sudo mv age/age /usr/local/bin/
-          sudo mv age/age-keygen /usr/local/bin/
-          # Install yq
-          YQ_VERSION=$(curl -s "https://api.github.com/repos/mikefarah/yq/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")' | sed 's/v//')
-          wget "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64"
-          sudo mv yq_linux_amd64 /usr/local/bin/yq
-          sudo chmod +x /usr/local/bin/yq
-
-      # Step 4: Decrypt secrets and export them as environment variables for the job
-      - name: Decrypt and Export Secrets
-        run: |
-          sops --decrypt config/development/config.yml | \
-          yq -r 'to_entries | .[] | .key + "=" + "\"" + .value + "\""' >> $GITHUB_ENV
-        env:
-          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
-
-      # --- THIS IS THE FIX ---
-      # This new step overwrites the DB credentials from your secrets file
-      # with the static ones used by the 'services' block above.
-      # This ensures your application connects to the correct test database.
-      - name: Override DB Credentials for CI
-        run: |
-          echo "DB_USERNAME=postgres" >> $GITHUB_ENV
-          echo "DB_PASSWORD=testpassword" >> $GITHUB_ENV
-          echo "DB_DATABASE=auth_db_test" >> $GITHUB_ENV
-          echo "DB_HOST=postgres" >> $GITHUB_ENV
-          echo "NODE_ENV=ci" >> $GITHUB_ENV
-
-      # Step 5: Set the working directory for all subsequent steps
-      - name: Set working directory
-        run: echo "WORK_DIR=main-app" >> $GITHUB_ENV
-
-      # Step 6: Setup Node.js environment
+      # Step 2: Setup Node.js environment with caching for speed
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           cache: 'npm'
-          cache-dependency-path: '${{ env.WORK_DIR }}/package-lock.json'
+          cache-dependency-path: 'main-app/package-lock.json'
 
-      # Step 7: Install application dependencies
+      # Step 3: Install application dependencies
       - name: Install dependencies
-        working-directory: ${{ env.WORK_DIR }}
         run: npm ci
 
-      # Step 8: Run the linter
+      # Step 4: Run the linter
       - name: Run lint check
-        working-directory: ${{ env.WORK_DIR }}
         run: npm run lint
 
-      # Step 9: Run the unit tests
+      # Step 5: Run the unit tests
       - name: Run unit tests
-        working-directory: ${{ env.WORK_DIR }}
         run: npm run test
-
-      # Step 10: Run the end-to-end tests
-      # - name: Run E2E tests
-      #   working-directory: ${{ env.WORK_DIR }}
-      #   run: npm run test:e2e:run
