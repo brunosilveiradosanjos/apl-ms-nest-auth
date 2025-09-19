@@ -2,9 +2,10 @@
 
 A production-ready authentication microservice built with NestJS, PostgreSQL, and following Clean Architecture principles.
 
-## Features
+## Features ✨
 
 - **JWT Authentication**: Secure token-based authentication with auto-login on signup.
+- **Health Check Endpoint**: A dedicated `/health` endpoint to monitor service and database status.
 - **Flexible Login**: Users can authenticate using either their username or their email address.
 - **Rich User Profiles**: User model includes email, first/last name, and status fields (`is_active`, `is_verified`).
 - **Secure GitOps Configuration**: All secrets and configurations are managed in a separate, private, and encrypted repository.
@@ -16,13 +17,13 @@ A production-ready authentication microservice built with NestJS, PostgreSQL, an
 - **Isolated E2E Testing**: A professional end-to-end testing setup that uses per-test PostgreSQL schemas for perfect test isolation without data loss.
 - **Clean Architecture**: Highly maintainable, testable, and scalable codebase.
 
-## Prerequisites
+## Prerequisites 🛠️
 
 - [Node.js](https://nodejs.org/) (v18 or higher)
 - [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/)
 - [SOPS](https://github.com/getsops/sops/releases) and [age](https://github.com/FiloSottile/age/releases) installed on your local machine for secrets management.
 
-## Getting Started (Local Development)
+## Getting Started (Local Development) 🚀
 
 This project uses a secure GitOps approach for configuration. All secrets are stored in a separate private repository and must be decrypted to run the application locally.
 
@@ -66,23 +67,22 @@ This project uses a secure GitOps approach for configuration. All secrets are st
 
 The application will be running at `http://localhost:3000`.
 
-## API Endpoints & Documentation
+## API Endpoints & Documentation 📖
 
-Once the application is running, you can access the interactive Swagger UI at:
+Once the application is running, you can access the interactive Swagger UI for a complete and testable API reference at:
 
 **[http://localhost:3000/api/docs](http://localhost:3000/api/docs)**
 
-### Key Endpoints
+### Endpoints Summary
 
-- **`POST /api/v1/users`**
-  - Creates a new user.
-  - **Body**: Requires `username`, `email`, `password`. Optional: `firstName`, `lastName`.
-  - **Response**: Returns JWT `access_token` and `refresh_token` for the new user.
-
-- **`POST /api/v1/auth/token`**
-  - Authenticates an existing user.
-  - **Body**: Requires `identifier` (which can be the user's `username` or `email`) and `password`.
-  - **Response**: Returns new JWT `access_token` and `refresh_token`.
+| Method   | Endpoint                     | Description                                                                                               | Authentication             |
+| :------- | :--------------------------- | :-------------------------------------------------------------------------------------------------------- | :------------------------- |
+| `GET`    | `/health`                    | Checks the service's operational status and its dependencies (e.g., database).                            | **Public**                 |
+| `POST`   | `/api/v1/users`              | **Sign Up**: Creates a new user. Requires `username`, `email`, `password`. Returns JWT tokens.            | **Public**                 |
+| `POST`   | `/api/v1/auth/token`         | **Login**: Authenticates a user with `identifier` (username or email) and `password`. Returns JWT tokens. | **Public**                 |
+| `GET`    | `/api/v1/users/me`           | Retrieves the profile information for the currently authenticated user.                                   | **JWT Required**           |
+| `POST`   | `/api/v1/auth/token/refresh` | Issues a new `access_token` using a valid `refresh_token`.                                                | **Refresh Token Required** |
+| `DELETE` | `/api/v1/auth/token`         | **Logout**: Logs the user out by invalidating their current refresh token.                                | **JWT Required**           |
 
 ### Test User Credentials
 
@@ -92,7 +92,7 @@ The test user created by the `init.sql` script has the following credentials:
 - **email**: `john.doe@example.com`
 - **password**: `strongPassword123`
 
-## Running Tests
+## Running Tests 🧪
 
 The project includes a comprehensive suite of unit and end-to-end tests.
 
