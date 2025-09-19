@@ -2,6 +2,7 @@
 -- crucial for handling time zones correctly. Indexes on foreign keys and unique
 -- fields (like username) are vital for query performance. ON DELETE CASCADE
 -- maintains data integrity by cleaning up related tokens when a user is deleted.
+DROP TABLE IF EXISTS users CASCADE;
 CREATE TABLE users (
     id VARCHAR(20) PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
@@ -22,6 +23,7 @@ CREATE INDEX idx_users_email ON users(email);
 
 
 -- Create the refresh_tokens table
+DROP TABLE IF EXISTS refresh_tokens CASCADE;
 CREATE TABLE refresh_tokens (
     id VARCHAR(20) PRIMARY KEY,
     user_id VARCHAR(20) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
