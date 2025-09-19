@@ -4,9 +4,9 @@ name: CI Pipeline
 # Controls when the workflow will run
 on:
   push:
-    branches: [main, development]
+    branches: [main, homologation, development]
   pull_request:
-    branches: [main, development]
+    branches: [main, homologation, development]
   workflow_dispatch:
 
 jobs:
@@ -104,13 +104,12 @@ jobs:
       - name: Initialize Database Schema
         # The PGPASSWORD env var is used by psql to authenticate without a prompt.
         env:
-          PGPASSWORD: testpassword # This must match the password in the services block
+          PGPASSWORD: ${{ env.DB_PASSWORD }}
         run: |
           # Wait a moment to ensure the DB service is fully accepting connections.
           sleep 5
-          # Execute the SQL script against the 'postgres' service container.
-          # -h: hostname, -U: user, -d: database name, -f: file
-          psql -h postgres -U postgres -d auth_db_test -f main-app/db/init.sql
+          # Execute the SQL script using the dynamic credentials from your config.
+          psql -h postgres -U ${{ env.DB_USERNAME }} -d ${{ env.DB_DATABASE }} -f main-app/db/init.sql
 
       # Step 9: Run the linter
       - name: Run lint check
