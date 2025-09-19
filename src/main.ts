@@ -29,7 +29,8 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig)
   SwaggerModule.setup('docs', app, document)
 
-  await app.listen(port as string | number)
+  // Tell the app to listen on all network interfaces
+  await app.listen(port as string | number, '0.0.0.0')
   console.log(`Application is running on: ${await app.getUrl()}`)
 }
 
