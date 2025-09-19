@@ -2,8 +2,8 @@ import { registerAs } from '@nestjs/config'
 import { z } from 'zod'
 
 import { Dialect } from 'sequelize'
-import { UserModel } from '@/modules/auth/infrastructure/persistence/sequelize/models/user.model'
 import { RefreshTokenModel } from '@/modules/auth/infrastructure/persistence/sequelize/models/refresh-token.model'
+import { UserModel } from '@/modules/user/infrastructure/persistence/sequelize/models/user.model'
 
 const dbConfigSchema = z.object({
   DB_DIALECT: z.string().default('postgres'),

@@ -1,5 +1,5 @@
+import { UserModel } from '@/modules/user/infrastructure/persistence/sequelize/models/user.model'
 import { Table, Column, Model, PrimaryKey, ForeignKey, BelongsTo } from 'sequelize-typescript'
-import { UserModel } from './user.model'
 
 @Table({ tableName: 'refresh_tokens', timestamps: true, createdAt: 'created_at', updatedAt: false })
 export class RefreshTokenModel extends Model {
@@ -14,7 +14,6 @@ export class RefreshTokenModel extends Model {
   @BelongsTo(() => UserModel)
   user: UserModel
 
-  // --- FIX: Add the @Column decorator to each database field ---
   @Column
   declare token_hash: string
 

@@ -1,11 +1,10 @@
-// src/modules/auth/infrastructure/persistence/sequelize/repositories/sequelize-users.repository.ts
 import { Injectable } from '@nestjs/common'
 import { InjectModel } from '@nestjs/sequelize'
-import { UserModel } from '@/modules/auth/infrastructure/persistence/sequelize/models/user.model'
-import { IUsersRepository } from '@/modules/auth/domain/repositories/i-users.repository'
-import { User } from '@/modules/auth/domain/entities/user.entity'
+import { IUsersRepository } from '@/modules/user/domain/repositories/i-users.repository'
+import { User } from '@/modules/user/domain/entities/user.entity'
 import { generateUniqueId } from '@/shared/utils/generate-unique-id'
 import { Op } from 'sequelize'
+import { UserModel } from '../models/user.model'
 
 @Injectable()
 export class SequelizeUsersRepository implements IUsersRepository {
@@ -35,12 +34,31 @@ export class SequelizeUsersRepository implements IUsersRepository {
     return user ? user.toJSON() : null
   }
 
-  async create(userData: Omit<User, 'id' | 'created_at' | 'updated_at'>): Promise<User> {
+  async findAll(): Promise<User[]> {
+    const users = await this.userModel.findAll()
+    return users.map((user) => user.toJSON())
+  }
+
+  async create(
+    userData: Omit<User, 'id' | 'created_at' | 'updated_at' | 'is_active' | 'is_verified' | 'last_login'>,
+  ): Promise<User> {
     const newUser = await this.userModel.create({
       id: generateUniqueId(),
+      is_active: true,
+      is_verified: false,
       ...userData,
     })
     return newUser.toJSON()
+  }
+
+  async update(id: string, data: Partial<Pick<User, 'first_name' | 'last_name'>>): Promise<User> {
+    await this.userModel.update(data, { where: { id } })
+    const updatedUser = await this.userModel.findByPk(id)
+    return updatedUser!.toJSON()
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.userModel.destroy({ where: { id } })
   }
 
   async updateLastLogin(userId: string): Promise<void> {

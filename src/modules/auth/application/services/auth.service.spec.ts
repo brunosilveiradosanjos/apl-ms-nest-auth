@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { AuthService } from './auth.service'
-import { IUsersRepository } from '@/modules/auth/domain/repositories/i-users.repository'
+import { IUsersRepository } from '@/modules/user/domain/repositories/i-users.repository'
 import { IRefreshTokensRepository } from '@/modules/auth/domain/repositories/i-refresh-tokens.repository'
 import { IHashProvider } from '@/modules/auth/infrastructure/providers/hash/i-hash.provider'
 import { JwtService } from '@nestjs/jwt'
@@ -8,7 +8,7 @@ import { ConfigService } from '@nestjs/config'
 import { Sequelize } from 'sequelize-typescript'
 import { userStub } from '../../../../../test/stubs/user.stub'
 import { UnauthorizedException, ForbiddenException, ConflictException, NotFoundException } from '@nestjs/common'
-import { User } from '@/modules/auth/domain/entities/user.entity'
+import { User } from '@/modules/user/domain/entities/user.entity'
 
 describe('AuthService', () => {
   let authService: AuthService
