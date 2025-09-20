@@ -1,9 +1,9 @@
-// src/modules/auth/infrastructure/persistence/sequelize/repositories/sequelize-users.repository.ts
+// src/modules/user/infrastructure/persistence/sequelize/repositories/sequelize-users.repository.ts
 import { Injectable } from '@nestjs/common'
 import { InjectModel } from '@nestjs/sequelize'
-import { UserModel } from '@/modules/auth/infrastructure/persistence/sequelize/models/user.model'
-import { IUsersRepository } from '@/modules/auth/domain/repositories/i-users.repository'
-import { User } from '@/modules/auth/domain/entities/user.entity'
+import { UserModel } from '@/modules/user/infrastructure/persistence/sequelize/models/user.model'
+import { IUsersRepository } from '@/modules/user/domain/repositories/i-users.repository'
+import { User } from '@/modules/user/domain/entities/user.entity'
 import { generateUniqueId } from '@/shared/utils/generate-unique-id'
 import { Op } from 'sequelize'
 

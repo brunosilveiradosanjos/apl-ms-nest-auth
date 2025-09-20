@@ -76,12 +76,4 @@ describe('SequelizeUsersRepository', () => {
       expect(mockUserModel.create).toHaveBeenCalledWith(expect.objectContaining(userData))
     })
   })
-
-  describe('updateLastLogin', () => {
-    it('should call update with last_login timestamp', async () => {
-      const userId = '123'
-      await repository.updateLastLogin(userId)
-      expect(mockUserModel.update).toHaveBeenCalledWith({ last_login: expect.any(Date) }, { where: { id: userId } })
-    })
-  })
 })

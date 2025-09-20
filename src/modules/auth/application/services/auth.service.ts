@@ -5,7 +5,6 @@ import {
   UnauthorizedException,
   NotFoundException,
   InternalServerErrorException,
-  ConflictException,
   ForbiddenException,
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
@@ -17,13 +16,13 @@ import * as crypto from 'crypto'
 import {
   IUsersRepository,
   IUsersRepository as IUsersRepositorySymbol,
-} from '@/modules/auth/domain/repositories/i-users.repository'
+} from '@/modules/user/domain/repositories/i-users.repository'
 import {
   IRefreshTokensRepository,
   IRefreshTokensRepository as IRefreshTokensRepositorySymbol,
 } from '@/modules/auth/domain/repositories/i-refresh-tokens.repository'
 import { generateUniqueId } from '@/shared/utils/generate-unique-id'
-import { User } from '@/modules/auth/domain/entities/user.entity'
+import { User } from '@/modules/user/domain/entities/user.entity'
 import { TokenResponseDto } from '@/modules/auth/infrastructure/http/dto/token-response.dto'
 import { IHashProvider, IHashProvider as IHashProviderSymbol } from '@/modules/auth/infrastructure/providers/hash/i-hash.provider'
 
@@ -128,36 +127,5 @@ export class AuthService {
       access_token: accessToken,
       refresh_token: refreshToken,
     }
-  }
-
-  async signUp(dto: {
-    username: string
-    email: string
-    pass: string
-    firstName?: string
-    lastName?: string
-  }): Promise<TokenResponseDto> {
-    // 1. Check if user already exists
-    if (await this.usersRepository.findByUsername(dto.username)) {
-      throw new ConflictException('Username already exists.')
-    }
-    if (await this.usersRepository.findByEmail(dto.email)) {
-      throw new ConflictException('Email address is already in use.')
-    }
-
-    // 2. Hash the password
-    const password_hash = await this.hashProvider.hash(dto.pass)
-
-    // 3. Create the user in the database
-    const newUser = await this.usersRepository.create({
-      username: dto.username,
-      email: dto.email,
-      password_hash,
-      first_name: dto.firstName,
-      last_name: dto.lastName,
-    })
-
-    // 4. Reuse token generation logic to log the new user in
-    return this.generateAndSaveTokens(newUser)
   }
 }

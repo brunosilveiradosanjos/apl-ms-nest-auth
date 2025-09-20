@@ -1,5 +1,5 @@
 import { Table, Column, Model, PrimaryKey, HasMany, DataType } from 'sequelize-typescript'
-import { RefreshTokenModel } from './refresh-token.model'
+import { RefreshTokenModel } from '@/modules/auth/infrastructure/persistence/sequelize/models/refresh-token.model'
 
 @Table({ tableName: 'users', timestamps: true, createdAt: 'created_at', updatedAt: 'updated_at' })
 export class UserModel extends Model {

@@ -1,5 +1,5 @@
 import { Table, Column, Model, PrimaryKey, ForeignKey, BelongsTo } from 'sequelize-typescript'
-import { UserModel } from './user.model'
+import { UserModel } from '@/modules/user/infrastructure/persistence/sequelize/models/user.model'
 
 @Table({ tableName: 'refresh_tokens', timestamps: true, createdAt: 'created_at', updatedAt: false })
 export class RefreshTokenModel extends Model {

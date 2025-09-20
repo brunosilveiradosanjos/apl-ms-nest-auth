@@ -1,14 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { AuthService } from './auth.service'
-import { IUsersRepository } from '@/modules/auth/domain/repositories/i-users.repository'
+import { IUsersRepository } from '@/modules/user/domain/repositories/i-users.repository'
 import { IRefreshTokensRepository } from '@/modules/auth/domain/repositories/i-refresh-tokens.repository'
 import { IHashProvider } from '@/modules/auth/infrastructure/providers/hash/i-hash.provider'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import { Sequelize } from 'sequelize-typescript'
 import { userStub } from '../../../../../test/stubs/user.stub'
-import { UnauthorizedException, ForbiddenException, ConflictException, NotFoundException } from '@nestjs/common'
-import { User } from '@/modules/auth/domain/entities/user.entity'
+import { UnauthorizedException, ForbiddenException, NotFoundException } from '@nestjs/common'
 
 describe('AuthService', () => {
   let authService: AuthService
@@ -123,45 +122,6 @@ describe('AuthService', () => {
       expect(result).toHaveProperty('refresh_token')
       expect(usersRepository.updateLastLogin).toHaveBeenCalledWith(user.id)
       expect(refreshTokensRepository.create).toHaveBeenCalled()
-    })
-  })
-
-  describe('signUp', () => {
-    const signUpDto = {
-      username: 'newuser',
-      email: 'new@example.com',
-      pass: 'password123',
-    }
-
-    it('should throw ConflictException if username already exists', async () => {
-      usersRepository.findByUsername.mockResolvedValue(userStub())
-      await expect(authService.signUp(signUpDto)).rejects.toThrow(ConflictException)
-    })
-
-    it('should throw ConflictException if email already exists', async () => {
-      usersRepository.findByUsername.mockResolvedValue(null)
-      usersRepository.findByEmail.mockResolvedValue(userStub())
-      await expect(authService.signUp(signUpDto)).rejects.toThrow(ConflictException)
-    })
-
-    it('should create user and return tokens on success', async () => {
-      usersRepository.findByUsername.mockResolvedValue(null)
-      usersRepository.findByEmail.mockResolvedValue(null)
-      hashProvider.hash.mockResolvedValue('hashed_password')
-      const createdUser = { ...userStub(), ...signUpDto }
-      usersRepository.create.mockResolvedValue(createdUser as User)
-      jwtService.signAsync.mockResolvedValue('fake_token')
-
-      const result = await authService.signUp(signUpDto)
-
-      expect(usersRepository.create).toHaveBeenCalledWith({
-        username: signUpDto.username,
-        email: signUpDto.email,
-        password_hash: 'hashed_password',
-        first_name: undefined,
-        last_name: undefined,
-      })
-      expect(result).toHaveProperty('access_token')
     })
   })
 
