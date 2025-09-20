@@ -7,7 +7,8 @@ import { APP_PIPE } from '@nestjs/core'
 import { appConfig } from '@/shared/config/app.config'
 import { DatabaseModule } from '@/shared/database/database.module'
 import { AuthModule } from '@/modules/auth/auth.module'
-import { HealthModule } from './modules/health/health.module'
+import { HealthModule } from '@/modules/health/health.module'
+import { UserModule } from '@/modules/user/user.module'
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { HealthModule } from './modules/health/health.module'
     ScheduleModule.forRoot(),
     DatabaseModule,
     AuthModule,
+    UserModule,
     HealthModule,
   ],
   providers: [
