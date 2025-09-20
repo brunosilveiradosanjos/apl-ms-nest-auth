@@ -7,8 +7,7 @@ import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import { Sequelize } from 'sequelize-typescript'
 import { userStub } from '../../../../../test/stubs/user.stub'
-import { UnauthorizedException, ForbiddenException, ConflictException, NotFoundException } from '@nestjs/common'
-import { User } from '@/modules/user/domain/entities/user.entity'
+import { UnauthorizedException, ForbiddenException, NotFoundException } from '@nestjs/common'
 
 describe('AuthService', () => {
   let authService: AuthService
