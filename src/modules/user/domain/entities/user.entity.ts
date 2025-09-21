@@ -8,4 +8,5 @@ export class User {
   is_active: boolean
   is_verified: boolean
   last_login?: Date | null
+  created_at?: Date | null
 }

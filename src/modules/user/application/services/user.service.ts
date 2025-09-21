@@ -1,11 +1,11 @@
 // src/modules/user/application/services/auth.service.ts
-import { Inject, Injectable, ConflictException } from '@nestjs/common'
-
+import { Inject, Injectable, ConflictException, NotFoundException } from '@nestjs/common'
 import {
   IUsersRepository,
   IUsersRepository as IUsersRepositorySymbol,
 } from '@/modules/user/domain/repositories/i-users.repository'
 import { IHashProvider, IHashProvider as IHashProviderSymbol } from '@/modules/auth/infrastructure/providers/hash/i-hash.provider'
+import { User } from '@/modules/user/domain/entities/user.entity'
 
 @Injectable()
 export class UserService {
@@ -15,6 +15,15 @@ export class UserService {
     @Inject(IHashProviderSymbol)
     private readonly hashProvider: IHashProvider,
   ) {}
+
+  // This method finds a user by their ID or throws an error if not found.
+  async findById(id: string): Promise<User> {
+    const user = await this.usersRepository.findById(id)
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found.`)
+    }
+    return user
+  }
 
   async signUp(dto: { username: string; email: string; pass: string; firstName?: string; lastName?: string }): Promise<void> {
     // 1. Check if user already exists

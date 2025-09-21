@@ -15,6 +15,7 @@ import { SequelizeRefreshTokensRepository } from './infrastructure/persistence/s
 import { AuthCleanupService } from './application/services/auth-cleanup.service'
 import { IHashProvider } from './infrastructure/providers/hash/i-hash.provider'
 import { BcryptHashProvider } from './infrastructure/providers/hash/bcrypt-hash.provider'
+import { JwtStrategy } from './infrastructure/http/strategies/jwt.strategy'
 
 @Module({
   imports: [SequelizeModule.forFeature([UserModel, RefreshTokenModel]), JwtModule.register({}), ConfigModule],
@@ -22,6 +23,7 @@ import { BcryptHashProvider } from './infrastructure/providers/hash/bcrypt-hash.
   providers: [
     AuthService,
     AuthCleanupService,
+    JwtStrategy,
     {
       provide: IUsersRepository,
       useClass: SequelizeUsersRepository,
