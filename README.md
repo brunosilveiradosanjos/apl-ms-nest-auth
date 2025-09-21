@@ -4,62 +4,61 @@ A production-ready authentication microservice built with NestJS, PostgreSQL, an
 
 ## Features ✨
 
-- **JWT Authentication**: Secure token-based authentication with auto-login on signup.
+- **Clean Architecture**: A highly maintainable and scalable codebase with a clear separation between the `auth` and `user` modules.
+- **JWT Authentication**: Secure token-based authentication and refresh token rotation.
+- **User Management**: Full administrative CRUD (Create, Read, Update, Delete) operations for user profiles.
+- **Flexible Login**: Users can authenticate using either their username or email address.
 - **Health Check Endpoint**: A dedicated `/health` endpoint to monitor service and database status.
-- **Flexible Login**: Users can authenticate using either their username or their email address.
-- **Rich User Profiles**: User model includes email, first/last name, and status fields (`is_active`, `is_verified`).
-- **Secure GitOps Configuration**: All secrets and configurations are managed in a separate, private, and encrypted repository.
-- **Automated CI/CD**: A GitHub Actions pipeline automatically lints, tests, and validates all changes on pull requests.
-- **Token Rotation**: Enhanced security by rotating refresh tokens on use.
 - **Database**: PostgreSQL managed via Docker for consistent development environments.
-- **Validation**: Robust request validation using Zod.
+- **Validation**: Robust request validation using Zod for type safety.
 - **API Documentation**: Automatic and interactive Swagger (OpenAPI) documentation.
-- **Isolated E2E Testing**: A professional end-to-end testing setup that uses per-test PostgreSQL schemas for perfect test isolation without data loss.
-- **Clean Architecture**: Highly maintainable, testable, and scalable codebase.
+- **Isolated E2E Testing**: A professional end-to-end testing setup that uses per-test PostgreSQL schemas for perfect test isolation.
 
 ## Prerequisites 🛠️
 
-- [Node.js](https://nodejs.org/) (v18 or higher)
+- [Node.js](https://nodejs.org/) (v20.x or higher)
 - [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/)
-- [SOPS](https://github.com/getsops/sops/releases) and [age](https://github.com/FiloSottile/age/releases) installed on your local machine for secrets management.
+- **(Optional)** A local `psql` client for running the `db:init` script.
 
 ## Getting Started (Local Development) 🚀
 
-This project uses a secure GitOps approach for configuration. All secrets are stored in a separate private repository and must be decrypted to run the application locally.
-
-1.  **Clone both repositories:**
-    You need both the application and the configuration repository.
+1.  **Clone the repository:**
 
     ```bash
-    # Clone the main application
     git clone [https://github.com/brunosilveiradosanjos/apl-ms-nest-auth.git](https://github.com/brunosilveiradosanjos/apl-ms-nest-auth.git)
     cd apl-ms-nest-auth
-
-    # Clone the config repo in a sibling directory
-    git clone [https://github.com/brunosilveiradosanjos/apl-ms-auth-config.git](https://github.com/brunosilveiradosanjos/apl-ms-auth-config.git) ../apl-ms-auth-config
     ```
 
-2.  **Install dependencies:**
+2.  **Create Environment File:**
+    Copy the example environment file.
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    _Update `.env` with your desired `DB_PASSWORD` and `JWT_SECRET`._
+
+3.  **Install dependencies:**
 
     ```bash
     npm install
     ```
 
-3.  **Set up Local Environment Secrets:**
-    Use SOPS to decrypt the development configuration from the config repo into a local `.env` file. This file is git-ignored and will not be committed. **You will need the `age` private key to perform this step.**
-
-    ```bash
-    sops --decrypt ../apl-ms-auth-config/development/config.yml > .env
-    ```
-
 4.  **Start the PostgreSQL database:**
-    This command will start a PostgreSQL container in the background.
+    This command starts a PostgreSQL container in the background.
 
     ```bash
     npm run db:start
     ```
 
-5.  **Run the application in development mode:**
+5.  **Initialize the Database Schema:**
+    Wait for the database to be ready, then run the initialization script.
+
+    ```bash
+    npm run db:init
+    ```
+
+6.  **Run the application in development mode:**
     The server will start and watch for file changes.
     ```bash
     npm run dev
@@ -69,20 +68,23 @@ The application will be running at `http://localhost:3000`.
 
 ## API Endpoints & Documentation 📖
 
-Once the application is running, you can access the interactive Swagger UI for a complete and testable API reference at:
+Once running, access the interactive Swagger UI at:
 
-**[http://localhost:3000/api/docs](http://localhost:3000/api/docs)**
+**[http://localhost:3000/api/v1/docs](http://localhost:3000/api/v1/docs)**
 
 ### Endpoints Summary
 
-| Method   | Endpoint                     | Description                                                                                               | Authentication             |
-| :------- | :--------------------------- | :-------------------------------------------------------------------------------------------------------- | :------------------------- |
-| `GET`    | `/health`                    | Checks the service's operational status and its dependencies (e.g., database).                            | **Public**                 |
-| `POST`   | `/api/v1/users`              | **Sign Up**: Creates a new user. Requires `username`, `email`, `password`. Returns JWT tokens.            | **Public**                 |
-| `POST`   | `/api/v1/auth/token`         | **Login**: Authenticates a user with `identifier` (username or email) and `password`. Returns JWT tokens. | **Public**                 |
-| `GET`    | `/api/v1/users/me`           | Retrieves the profile information for the currently authenticated user.                                   | **JWT Required**           |
-| `POST`   | `/api/v1/auth/token/refresh` | Issues a new `access_token` using a valid `refresh_token`.                                                | **Refresh Token Required** |
-| `DELETE` | `/api/v1/auth/token`         | **Logout**: Logs the user out by invalidating their current refresh token.                                | **JWT Required**           |
+| Method   | Endpoint               | Description                                                                           | Authentication             |
+| :------- | :--------------------- | :------------------------------------------------------------------------------------ | :------------------------- |
+| `GET`    | `/health`              | Checks the service's operational status and its dependencies.                         | **Public**                 |
+| `POST`   | `/api/v1/auth/signup`  | **Sign Up**: Creates a new user. Returns authentication tokens.                       | **Public**                 |
+| `POST`   | `/api/v1/auth/token`   | **Login**: Authenticates a user with `identifier` (username or email) and `password`. | **Public**                 |
+| `POST`   | `/api/v1/auth/refresh` | Issues a new `access_token` using a valid `refresh_token`.                            | **Refresh Token Required** |
+| `GET`    | `/api/v1/users/me`     | Retrieves the profile information for the currently authenticated user.               | **JWT Required**           |
+| `GET`    | `/api/v1/users`        | **(Admin)** Retrieves a list of all user profiles.                                    | **JWT Required**           |
+| `GET`    | `/api/v1/users/:id`    | **(Admin)** Retrieves a specific user's profile by their ID.                          | **JWT Required**           |
+| `PATCH`  | `/api/v1/users/:id`    | **(Admin)** Updates a specific user's profile.                                        | **JWT Required**           |
+| `DELETE` | `/api/v1/users/:id`    | **(Admin)** Deactivates a specific user's account (soft delete).                      | **JWT Required**           |
 
 ### Test User Credentials
 
