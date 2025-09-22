@@ -1,4 +1,5 @@
-import { User } from '@/modules/auth/domain/entities/user.entity'
+import { User } from '@/modules/user/domain/entities/user.entity'
+import { Role } from '@/modules/user/domain/enums/role.enum'
 
 export const userStub = (): User => {
   return {
@@ -10,6 +11,7 @@ export const userStub = (): User => {
     last_name: 'Doe',
     is_active: true,
     is_verified: true,
-    last_login: new Date(),
+    last_login: new Date('2025-09-22T14:28:16.390Z'),
+    role: Role.User,
   }
 }

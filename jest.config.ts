@@ -44,7 +44,6 @@ const config: Config = {
     'i-.*.repository.ts',
     'i-.*.provider.ts',
     '.config.ts',
-    'generate-unique-id.ts',
     '.controller.ts',
   ],
 }
