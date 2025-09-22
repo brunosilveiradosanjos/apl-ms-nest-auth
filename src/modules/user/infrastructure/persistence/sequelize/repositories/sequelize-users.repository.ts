@@ -10,7 +10,6 @@ import { Op } from 'sequelize'
 @Injectable()
 export class SequelizeUsersRepository implements IUsersRepository {
   constructor(@InjectModel(UserModel) private readonly userModel: typeof UserModel) {}
-
   async findByUsernameOrEmail(identifier: string): Promise<User | null> {
     const user = await this.userModel.findOne({
       where: {
@@ -41,6 +40,34 @@ export class SequelizeUsersRepository implements IUsersRepository {
       ...userData,
     })
     return newUser.toJSON()
+  }
+
+  async findAll(): Promise<User[]> {
+    const users = await this.userModel.findAll()
+    return users.map((user) => user.toJSON() as User)
+  }
+
+  async update(id: string, data: Partial<Pick<User, 'first_name' | 'last_name'>>): Promise<User> {
+    await this.userModel.update(data, { where: { id } })
+    const updatedUser = await this.findById(id)
+    if (!updatedUser) {
+      // This should ideally not happen if the update is successful,
+      // but it's good practice to handle the possibility.
+      throw new Error('Failed to retrieve updated user.')
+    }
+    return updatedUser
+  }
+
+  async delete(id: string): Promise<void> {
+    const user = await this.findById(id)
+    if (!user) {
+      throw new Error(`User with ID ${id} not found.`)
+    }
+    if (user) {
+      // Soft delete by setting the user to inactive
+      user.is_active = false
+      await this.userModel.update({ is_active: false }, { where: { id } })
+    }
   }
 
   async updateLastLogin(userId: string): Promise<void> {

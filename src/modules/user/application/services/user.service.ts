@@ -6,6 +6,8 @@ import {
 } from '@/modules/user/domain/repositories/i-users.repository'
 import { IHashProvider, IHashProvider as IHashProviderSymbol } from '@/modules/auth/infrastructure/providers/hash/i-hash.provider'
 import { User } from '@/modules/user/domain/entities/user.entity'
+import { Role } from '@/modules/user/domain/enums/role.enum'
+import { UpdateUserProfileDto } from '@/modules/user/infrastructure/http/dto/update-user-profile.dto'
 
 @Injectable()
 export class UserService {
@@ -15,15 +17,6 @@ export class UserService {
     @Inject(IHashProviderSymbol)
     private readonly hashProvider: IHashProvider,
   ) {}
-
-  // This method finds a user by their ID or throws an error if not found.
-  async findById(id: string): Promise<User> {
-    const user = await this.usersRepository.findById(id)
-    if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found.`)
-    }
-    return user
-  }
 
   async signUp(dto: { username: string; email: string; pass: string; firstName?: string; lastName?: string }): Promise<void> {
     // 1. Check if user already exists
@@ -44,6 +37,32 @@ export class UserService {
       password_hash,
       first_name: dto.firstName,
       last_name: dto.lastName,
+      role: Role.User, // Assign default role on creation
     })
+  }
+  async findById(id: string): Promise<User> {
+    const user = await this.usersRepository.findById(id)
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found.`)
+    }
+    return user
+  }
+
+  async findAll(): Promise<User[]> {
+    return this.usersRepository.findAll()
+  }
+
+  async update(id: string, dto: UpdateUserProfileDto): Promise<User> {
+    const user = await this.findById(id)
+    const dataToUpdate = {
+      first_name: dto.firstName,
+      last_name: dto.lastName,
+    }
+    return this.usersRepository.update(user.id, dataToUpdate)
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.findById(id) // Ensure user exists before deleting
+    await this.usersRepository.delete(id)
   }
 }

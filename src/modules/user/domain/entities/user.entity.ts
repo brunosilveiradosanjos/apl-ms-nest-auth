@@ -1,8 +1,11 @@
+import { Role } from '../enums/role.enum'
+
 export class User {
   id: string
   username: string
   email: string
   password_hash: string
+  role: Role
   first_name?: string | null
   last_name?: string | null
   is_active: boolean

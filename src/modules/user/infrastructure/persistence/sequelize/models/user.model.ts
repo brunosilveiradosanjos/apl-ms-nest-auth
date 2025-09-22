@@ -1,5 +1,6 @@
 import { Table, Column, Model, PrimaryKey, HasMany, DataType } from 'sequelize-typescript'
 import { RefreshTokenModel } from '@/modules/auth/infrastructure/persistence/sequelize/models/refresh-token.model'
+import { Role } from '@/modules/user/domain/enums/role.enum'
 
 @Table({ tableName: 'users', timestamps: true, createdAt: 'created_at', updatedAt: 'updated_at' })
 export class UserModel extends Model {
@@ -21,6 +22,9 @@ export class UserModel extends Model {
 
   @Column({ type: DataType.STRING(100), allowNull: true })
   declare last_name: string
+
+  @Column({ type: DataType.ENUM(...Object.values(Role)), allowNull: false, defaultValue: Role.User })
+  declare role: Role
 
   @Column({ type: DataType.BOOLEAN, defaultValue: true, allowNull: false })
   declare is_active: boolean

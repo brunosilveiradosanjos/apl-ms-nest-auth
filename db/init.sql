@@ -1,7 +1,13 @@
 -- Rationale: We use raw SQL for full control over the schema. TIMESTAMPTZ is
 -- crucial for handling time zones correctly. Indexes on foreign keys and unique
 -- fields (like username) are vital for query performance. ON DELETE CASCADE
--- maintains data integrity by cleaning up related tokens when a user is deleted.
+-- maintains data integrity by cleaning up related tokens when a user is deleted.-- Rationale: We add a user_role ENUM type to ensure data integrity at the
+-- database level. The 'role' column is added to the users table with a default
+-- value of 'user'. The test user is explicitly given the 'admin' role.
+
+-- Create a custom type for user roles
+CREATE TYPE user_role AS ENUM ('admin', 'user');
+
 DROP TABLE IF EXISTS users CASCADE;
 CREATE TABLE users (
     id VARCHAR(20) PRIMARY KEY,
@@ -10,12 +16,21 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     first_name VARCHAR(100),
     last_name VARCHAR(100),
+    role user_role NOT NULL DEFAULT 'user', -- Add the role column
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     is_verified BOOLEAN NOT NULL DEFAULT FALSE,
     last_login TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- ... (rest of the script remains the same)
+
+-- Seeding a test user for development with an admin role.
+-- Seeding a test user for development.
+-- The password is 'strongPassword123'
+INSERT INTO users (id, username, email, password_hash, first_name, last_name, role)
+VALUES
+('20250915093000001234', 'johndoe', 'john.doe@example.com', '$2a$10$57SFNNRJ54YlQX8wSSTKFO0W7KWITG.WxiIhstyfPClKa7dRxgi1i', 'John', 'Doe', 'admin');
 
 -- Add indexes for fast lookups on unique, frequently queried columns
 CREATE INDEX idx_users_username ON users(username);
@@ -37,9 +52,3 @@ CREATE TABLE refresh_tokens (
 -- This makes lookups for active tokens much faster.
 CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id);
 CREATE INDEX idx_active_refresh_tokens ON refresh_tokens(token_hash) WHERE is_revoked = FALSE;
-
--- Seeding a test user for development.
--- The password is 'strongPassword123'
-INSERT INTO users (id, username, email, password_hash, first_name, last_name)
-VALUES
-('20250915093000001234', 'johndoe', 'john.doe@example.com', '$2a$10$AbI.jott.p2y1iK5lBGA7u/GvV.L03PlzV5isg5vYL.g09S9Zg9eS', 'John', 'Doe');

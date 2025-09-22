@@ -103,7 +103,7 @@ export class AuthService {
   }
 
   private async generateAndSaveTokens(user: User): Promise<TokenResponseDto> {
-    const payload = { sub: user.id, username: user.username }
+    const payload = { sub: user.id, username: user.username, role: user.role }
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
