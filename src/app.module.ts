@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config'
 import { ScheduleModule } from '@nestjs/schedule'
 import { ZodValidationPipe } from 'nestjs-zod'
 import { APP_PIPE } from '@nestjs/core'
+import { RateLimiterModule, RateLimiterGuard } from 'nestjs-rate-limiter'
+import { APP_GUARD } from '@nestjs/core'
 
 import { appConfig } from '@/shared/config/app.config'
 import { DatabaseModule } from '@/shared/database/database.module'
@@ -17,6 +19,12 @@ import { UserModule } from '@/modules/user/user.module'
       envFilePath: [`.env.${process.env.NODE_ENV}`, '.env'],
       load: [appConfig],
     }),
+    RateLimiterModule.register({
+      for: 'Express',
+      type: 'Memory',
+      points: 5,
+      duration: 60,
+    }),
     ScheduleModule.forRoot(),
     DatabaseModule,
     AuthModule,
@@ -27,6 +35,10 @@ import { UserModule } from '@/modules/user/user.module'
     {
       provide: APP_PIPE,
       useClass: ZodValidationPipe,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RateLimiterGuard,
     },
   ],
 })

@@ -4,15 +4,20 @@ import { ConfigService } from '@nestjs/config'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { patchNestJsSwagger } from 'nestjs-zod'
 import { ZodValidationPipe } from 'nestjs-zod' // Import the Zod pipe
+import helmet from 'helmet' // Import helmet
 
 import { AppModule } from './app.module'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
-  app.useGlobalPipes(new ZodValidationPipe()) // Use the correct Zod pipe
+  app.use(helmet()) // Use helmet for security
+  app.useGlobalPipes(new ZodValidationPipe()) // Use the correct Zod pipe for validation
+
+  // Get the port from configuration
   const configService = app.get(ConfigService)
   const port = configService.get<number>('PORT')
 
+  // Set a global prefix for all routes
   app.setGlobalPrefix('api/v1')
 
   // Patch Swagger to support Zod DTOs
