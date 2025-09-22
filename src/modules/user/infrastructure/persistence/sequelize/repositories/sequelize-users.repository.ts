@@ -44,7 +44,7 @@ export class SequelizeUsersRepository implements IUsersRepository {
 
   async findAll(): Promise<User[]> {
     const users = await this.userModel.findAll()
-    return users.map((user) => user.toJSON() as User)
+    return users.map((user) => user.toJSON())
   }
 
   async update(id: string, data: Partial<Pick<User, 'first_name' | 'last_name'>>): Promise<User> {

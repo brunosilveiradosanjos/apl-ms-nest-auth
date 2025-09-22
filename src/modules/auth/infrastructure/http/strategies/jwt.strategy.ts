@@ -16,7 +16,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
   // This method is called after the token is verified.
   // It returns the payload which NestJS attaches to the request object (e.g., req.user).
-  async validate(payload: { sub: string; username: string; role: Role }) {
+  validate(payload: { sub: string; username: string; role: Role }) {
     if (!payload.sub || !payload.username || !payload.role) {
       throw new UnauthorizedException()
     }
