@@ -4,7 +4,6 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { UserModel } from '../models/user.model'
 import { userStub } from '../../../../../../../test/stubs/user.stub'
 import { Op } from 'sequelize'
-import { User } from '@/modules/user/domain/entities/user.entity'
 
 const userModelInstance = {
   ...userStub(),
@@ -42,7 +41,7 @@ describe('SequelizeUsersRepository', () => {
     expect(repository).toBeDefined()
   })
   // Common user data for consistent comparisons, omitting the volatile last_login date
-  const userStubWithoutDate = (({ last_login, ...rest }) => rest)(userStub())
+  const userStubWithoutDate = (({ ...rest }) => rest)(userStub())
 
   describe('findByUsernameOrEmail', () => {
     it('should call findOne with correct query and return a user', async () => {
@@ -95,7 +94,7 @@ describe('SequelizeUsersRepository', () => {
   describe('create', () => {
     it('should call create with correct user data and return the new user', async () => {
       mockUserModel.create.mockResolvedValue(userModelInstance)
-      const { id, ...createData } = userStub() // Use the stub to create data
+      const { ...createData } = userStub() // Use the stub to create data
       const newUser = await repository.create(createData)
 
       expect(mockUserModel.create).toHaveBeenCalledWith(expect.any(Object))

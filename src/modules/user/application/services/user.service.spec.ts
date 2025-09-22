@@ -110,7 +110,7 @@ describe('UserService', () => {
 
   describe('update', () => {
     it('should update and return a user', async () => {
-      const user = userStub() as User
+      const user = userStub()
       const updateData: UpdateUserProfileDto = { firstName: 'Jane' }
 
       const updatedUser = { ...user, first_name: 'Jane' }
@@ -129,7 +129,7 @@ describe('UserService', () => {
 
   describe('delete', () => {
     it('should soft delete a user', async () => {
-      const user = userStub() as User
+      const user = userStub()
       usersRepository.findById.mockResolvedValue(user)
 
       await userService.delete(user.id)

@@ -1,0 +1,33 @@
+# ---- Base Stage (For Production Dependencies) ----
+# We create a clean "base" with ONLY production dependencies.
+FROM node:20-alpine AS base
+WORKDIR /usr/src/app
+COPY package*.json ./
+RUN npm ci --only=production
+
+# ---- Build Stage (For Building the App) ----
+# We create a separate environment for building.
+FROM node:20-alpine AS build
+WORKDIR /usr/src/app
+# First, copy the production node_modules from the 'base' stage
+COPY --from=base /usr/src/app/node_modules ./node_modules
+# Then copy the rest of the project files
+COPY . .
+# Now, install ALL dependencies (including devDependencies) needed for the build
+RUN npm ci
+# Build the application using the devDependencies
+RUN npm run build
+
+# ---- Production Stage (The Final, Lean Image) ----
+# This is the final image that will be deployed. It's clean and minimal.
+FROM node:20-alpine
+WORKDIR /usr/src/app
+# Copy ONLY the production node_modules from the 'base' stage
+COPY --from=base /usr/src/app/node_modules ./node_modules
+# Copy ONLY the compiled code from the 'build' stage
+COPY --from=build /usr/src/app/dist ./dist
+# Copy package.json for runtime needs, if any
+COPY package.json .
+
+EXPOSE 3000
+CMD ["node", "dist/src/main"]

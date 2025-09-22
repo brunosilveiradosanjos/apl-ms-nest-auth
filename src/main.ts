@@ -2,8 +2,7 @@
 import { NestFactory } from '@nestjs/core'
 import { ConfigService } from '@nestjs/config'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
-import { patchNestJsSwagger } from 'nestjs-zod'
-import { ZodValidationPipe } from 'nestjs-zod' // Import the Zod pipe
+import { patchNestJsSwagger, ZodValidationPipe } from 'nestjs-zod'
 import helmet from 'helmet' // Import helmet
 
 import { AppModule } from './app.module'
@@ -19,6 +18,16 @@ async function bootstrap() {
 
   // Set a global prefix for all routes
   app.setGlobalPrefix('api/v1')
+
+  //
+  // --- GRACEFUL SHUTDOWN ---
+  // Rationale: This is critical for production stability. It ensures that
+  // when the hosting platform (like Render) sends a shutdown signal, the app
+  // closes database connections and finishes ongoing tasks before exiting.
+  // This prevents memory leaks and failed health checks on restart.
+  app.enableShutdownHooks()
+  // -------------------------
+  //
 
   // Patch Swagger to support Zod DTOs
   patchNestJsSwagger()

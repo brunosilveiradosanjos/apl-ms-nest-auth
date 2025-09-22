@@ -1,0 +1,41 @@
+# docker-compose.dev.yml
+version: '3.8'
+
+services:
+  # The NestJS Application Service
+  app:
+    container_name: auth-ms-app
+    # Build the image using our production Dockerfile
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    ports:
+      - '${PORT}:${PORT}' # Use port from .env
+    # Pass the .env file for configuration
+    env_file:
+      - .env
+    # CRITICAL: Set DB_HOST to the database service name
+    environment:
+      - DB_HOST=postgres-auth
+    # Make the app depend on the database to ensure correct startup order
+    depends_on:
+      - postgres-auth
+    restart: unless-stopped
+
+  # The PostgreSQL Database Service (from your original file)
+  postgres-auth:
+    image: postgres:15-alpine
+    container_name: postgres-auth-db
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    ports:
+      - '${DB_PORT}:5432'
+    volumes:
+      - postgres-auth-data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+
+volumes:
+  postgres-auth-data:

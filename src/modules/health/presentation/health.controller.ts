@@ -1,7 +1,8 @@
-import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common'
+import { Controller, Get, HttpStatus, Res } from '@nestjs/common' // Import Response
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { HealthCheckUseCase } from '@/modules/health/application/health.check.use-case'
 import { HealthCheckResponseDto } from './dto/health-check-response.dto'
+import express from 'express' // Import Express Response type
 
 @ApiTags('Health')
 @Controller('health')
@@ -9,7 +10,6 @@ export class HealthController {
   constructor(private readonly healthCheckUseCase: HealthCheckUseCase) {}
 
   @Get()
-  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Check the health of the service and its dependencies.' })
   @ApiResponse({
     status: 200,
@@ -21,17 +21,16 @@ export class HealthController {
     description: 'Service is unhealthy due to a failing dependency.',
     type: HealthCheckResponseDto,
   })
-  async check(): Promise<HealthCheckResponseDto> {
+  async check(@Res() res: express.Response): Promise<void> {
+    // Inject Response object
     const healthStatus = await this.healthCheckUseCase.execute()
 
     if (healthStatus.status === 'error') {
-      // NestJS will automatically set the status code if we throw a standard exception
-      // but for health checks, it's better to return 503 with a body.
-      // A custom exception filter or interceptor could handle this more globally.
-      // For simplicity, we will rely on the consumer to check the body. A more robust
-      // solution would set the HTTP status code dynamically.
+      // Set the status code to 503 and send the response body
+      res.status(HttpStatus.SERVICE_UNAVAILABLE).json(healthStatus)
+    } else {
+      // Otherwise, send a 200 OK
+      res.status(HttpStatus.OK).json(healthStatus)
     }
-
-    return healthStatus
   }
 }
