@@ -18,7 +18,17 @@ export class UsersController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new user (Sign Up)' })
+  @ApiOperation({
+    summary: 'Create a new user (Sign Up)',
+    description: `
+    Creates a new user account. The password must meet the following criteria:
+    - Minimum length of 10 characters
+    - At least one uppercase letter (A-Z)
+    - At least one lowercase letter (a-z)
+    - At least one number (0-9)
+    - At least one special character (e.g., !@#$%^&*)
+    `,
+  })
   @ApiResponse({ status: 201, description: 'User created successfully.' }) // Updated: No response body
   @ApiResponse({ status: 409, description: 'Conflict: Username or email already exists.' })
   async createUser(@Body() dto: CreateUserDto): Promise<void> {
