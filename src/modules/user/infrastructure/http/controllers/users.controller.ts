@@ -25,7 +25,7 @@ export class UsersController {
     await this.userService.signUp({
       username: dto.username,
       email: dto.email,
-      pass: dto.password,
+      password: dto.password,
       firstName: dto.firstName,
       lastName: dto.lastName,
     })

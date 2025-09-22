@@ -8,6 +8,7 @@ import { IHashProvider, IHashProvider as IHashProviderSymbol } from '@/modules/a
 import { User } from '@/modules/user/domain/entities/user.entity'
 import { Role } from '@/modules/user/domain/enums/role.enum'
 import { UpdateUserProfileDto } from '@/modules/user/infrastructure/http/dto/update-user-profile.dto'
+import { CreateUserDto } from '../../infrastructure/http/dto/create-user.dto'
 
 @Injectable()
 export class UserService {
@@ -18,7 +19,7 @@ export class UserService {
     private readonly hashProvider: IHashProvider,
   ) {}
 
-  async signUp(dto: { username: string; email: string; pass: string; firstName?: string; lastName?: string }): Promise<void> {
+  async signUp(dto: CreateUserDto): Promise<void> {
     // 1. Check if user already exists
     if (await this.usersRepository.findByUsername(dto.username)) {
       throw new ConflictException('Username already exists.')
@@ -28,7 +29,7 @@ export class UserService {
     }
 
     // 2. Hash the password
-    const password_hash = await this.hashProvider.hash(dto.pass)
+    const password_hash = await this.hashProvider.hash(dto.password)
 
     // 3. Create the user in the database
     await this.usersRepository.create({

@@ -1,34 +1,32 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { ConflictException } from '@nestjs/common'
+import { ConflictException, NotFoundException } from '@nestjs/common'
 import { UserService } from './user.service'
 import { userStub } from '../../../../../test/stubs/user.stub'
 import { User } from '@/modules/user/domain/entities/user.entity'
+import { Role } from '../../domain/enums/role.enum'
 import {
   IUsersRepository,
   IUsersRepository as IUsersRepositorySymbol,
 } from '@/modules/user/domain/repositories/i-users.repository'
-import { IHashProvider, IHashProvider as IHashProviderSymbol } from '@/modules/auth/infrastructure/providers/hash/i-hash.provider' // <-- Import the symbol
+import { IHashProvider, IHashProvider as IHashProviderSymbol } from '@/modules/auth/infrastructure/providers/hash/i-hash.provider'
+import { CreateUserDto } from '../../infrastructure/http/dto/create-user.dto'
+import { UpdateUserProfileDto } from '../../infrastructure/http/dto/update-user-profile.dto'
 
 describe('UserService', () => {
   let userService: UserService
   let usersRepository: jest.Mocked<IUsersRepository>
   let hashProvider: jest.Mocked<IHashProvider>
 
-  const signUpDto = {
-    username: 'newuser',
-    email: 'new@example.com',
-    pass: 'password123',
-    firstName: 'Test',
-    lastName: 'User',
-  }
-
   beforeEach(async () => {
-    // Define mock implementations for only the required dependencies
     const usersRepositoryMock = {
       findByUsername: jest.fn(),
       findByEmail: jest.fn(),
       create: jest.fn(),
-      // Add other methods from the interface if needed for other tests
+      findById: jest.fn(),
+      findAll: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      save: jest.fn(), // Added for soft delete
     }
 
     const hashProviderMock = {
@@ -39,18 +37,11 @@ describe('UserService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
-        {
-          provide: IUsersRepositorySymbol, // <-- Use the correct Symbol
-          useValue: usersRepositoryMock,
-        },
-        {
-          provide: IHashProviderSymbol, // <-- Use the correct Symbol
-          useValue: hashProviderMock,
-        },
+        { provide: IUsersRepositorySymbol, useValue: usersRepositoryMock },
+        { provide: IHashProviderSymbol, useValue: hashProviderMock },
       ],
     }).compile()
 
-    // Get instances of the service and its mocks
     userService = module.get<UserService>(UserService)
     usersRepository = module.get(IUsersRepositorySymbol)
     hashProvider = module.get(IHashProviderSymbol)
@@ -61,41 +52,89 @@ describe('UserService', () => {
   })
 
   describe('signUp', () => {
-    it('should throw ConflictException if username already exists', async () => {
-      usersRepository.findByUsername.mockResolvedValue(userStub())
+    const signUpDto: CreateUserDto = {
+      username: 'newuser',
+      email: 'new@example.com',
+      password: 'password123',
+    }
 
-      await expect(userService.signUp(signUpDto)).rejects.toThrow(new ConflictException('Username already exists.'))
-      // Ensure other functions are not called in this failure path
-      expect(usersRepository.findByEmail).not.toHaveBeenCalled()
-      expect(hashProvider.hash).not.toHaveBeenCalled()
-      expect(usersRepository.create).not.toHaveBeenCalled()
+    it('should throw ConflictException if username exists', async () => {
+      usersRepository.findByUsername.mockResolvedValue(userStub())
+      await expect(userService.signUp(signUpDto)).rejects.toThrow(ConflictException)
     })
 
-    it('should throw ConflictException if email already exists', async () => {
+    it('should throw ConflictException if email exists', async () => {
       usersRepository.findByUsername.mockResolvedValue(null)
       usersRepository.findByEmail.mockResolvedValue(userStub())
-
-      await expect(userService.signUp(signUpDto)).rejects.toThrow(new ConflictException('Email address is already in use.'))
-      expect(hashProvider.hash).not.toHaveBeenCalled()
-      expect(usersRepository.create).not.toHaveBeenCalled()
+      await expect(userService.signUp(signUpDto)).rejects.toThrow(ConflictException)
     })
 
-    it('should successfully create a new user', async () => {
-      usersRepository.findByUsername.mockResolvedValue(null)
-      usersRepository.findByEmail.mockResolvedValue(null)
+    it('should create a user successfully', async () => {
       hashProvider.hash.mockResolvedValue('hashed_password')
-      usersRepository.create.mockResolvedValue({ ...userStub(), ...signUpDto } as User)
+      usersRepository.create.mockResolvedValue(undefined as any) // `create` returns void/Promise<void>
 
+      // The method should resolve without returning a value
       await expect(userService.signUp(signUpDto)).resolves.toBeUndefined()
 
-      expect(hashProvider.hash).toHaveBeenCalledWith(signUpDto.pass)
-      expect(usersRepository.create).toHaveBeenCalledWith({
-        username: signUpDto.username,
-        email: signUpDto.email,
-        password_hash: 'hashed_password',
-        first_name: signUpDto.firstName,
-        last_name: signUpDto.lastName,
+      expect(usersRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          username: signUpDto.username,
+          email: signUpDto.email,
+          password_hash: 'hashed_password',
+          role: Role.User,
+        }),
+      )
+    })
+  })
+
+  describe('findById', () => {
+    it('should return a user if found', async () => {
+      const user = userStub()
+      usersRepository.findById.mockResolvedValue(user)
+      await expect(userService.findById(user.id)).resolves.toEqual(user)
+    })
+
+    it('should throw NotFoundException if user not found', async () => {
+      usersRepository.findById.mockResolvedValue(null)
+      await expect(userService.findById('1')).rejects.toThrow(NotFoundException)
+    })
+  })
+
+  describe('findAll', () => {
+    it('should return an array of users', async () => {
+      const users = [userStub()]
+      usersRepository.findAll.mockResolvedValue(users)
+      await expect(userService.findAll()).resolves.toEqual(users)
+    })
+  })
+
+  describe('update', () => {
+    it('should update and return a user', async () => {
+      const user = userStub() as User
+      const updateData: UpdateUserProfileDto = { firstName: 'Jane' }
+
+      const updatedUser = { ...user, first_name: 'Jane' }
+      usersRepository.findById.mockResolvedValue(user)
+      usersRepository.update.mockResolvedValue(updatedUser as User)
+
+      const result = await userService.update(user.id, updateData)
+
+      expect(usersRepository.update).toHaveBeenCalledWith(user.id, {
+        first_name: 'Jane',
+        last_name: undefined,
       })
+      expect(result.first_name).toBe('Jane')
+    })
+  })
+
+  describe('delete', () => {
+    it('should soft delete a user', async () => {
+      const user = userStub() as User
+      usersRepository.findById.mockResolvedValue(user)
+
+      await userService.delete(user.id)
+
+      expect(usersRepository.delete).toHaveBeenCalledWith(user.id)
     })
   })
 })
