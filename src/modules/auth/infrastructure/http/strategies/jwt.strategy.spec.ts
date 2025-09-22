@@ -30,7 +30,7 @@ describe('JwtStrategy', () => {
     expect(result).toEqual(payload)
   })
 
-  it('should throw UnauthorizedException for an invalid payload', async () => {
-    await expect(strategy.validate({} as any)).rejects.toThrow(UnauthorizedException)
+  it('should throw UnauthorizedException for an invalid payload', () => {
+    expect(() => strategy.validate({} as any)).toThrow(UnauthorizedException)
   })
 })
