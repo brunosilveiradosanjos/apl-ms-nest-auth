@@ -43,8 +43,8 @@ export class AuthService {
     return crypto.createHash('sha256').update(token).digest('hex')
   }
 
-  async login(identifier: string, pass: string): Promise<TokenResponseDto> {
-    const user = await this.usersRepository.findByUsernameOrEmail(identifier)
+  async login(clientId: string, identifier: string, pass: string): Promise<TokenResponseDto> {
+    const user = await this.usersRepository.findByClientIdAndUsernameOrEmail(clientId, identifier)
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials.')
@@ -62,7 +62,7 @@ export class AuthService {
 
     void this.usersRepository.updateLastLogin(user.id)
 
-    return this.generateAndSaveTokens(user)
+    return this.generateAndSaveTokens(user, clientId)
   }
 
   async validateToken(token: string): Promise<{ sub: string; username: string }> {
@@ -92,7 +92,7 @@ export class AuthService {
     try {
       const result = await this.sequelize.transaction(async () => {
         await this.refreshTokensRepository.revoke(existingRefreshToken.id)
-        return this.generateAndSaveTokens(user)
+        return this.generateAndSaveTokens(user, existingRefreshToken.client_id)
       })
       return result
     } catch (error) {
@@ -102,7 +102,7 @@ export class AuthService {
     }
   }
 
-  private async generateAndSaveTokens(user: User): Promise<TokenResponseDto> {
+  private async generateAndSaveTokens(user: User, clientId: string): Promise<TokenResponseDto> {
     const payload = { sub: user.id, username: user.username, role: user.role }
 
     const [accessToken, refreshToken] = await Promise.all([
@@ -119,6 +119,7 @@ export class AuthService {
     await this.refreshTokensRepository.create({
       id: generateUniqueId(),
       user_id: user.id,
+      client_id: clientId, // Pass the client ID
       token_hash: refreshTokenHash,
       expires_at: addDays(new Date(), refreshTokenExpiresInDays),
     })

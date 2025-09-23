@@ -1,6 +1,8 @@
-import { Table, Column, Model, PrimaryKey, HasMany, DataType } from 'sequelize-typescript'
+import { Table, Column, Model, PrimaryKey, HasMany, DataType, BelongsToMany } from 'sequelize-typescript'
 import { RefreshTokenModel } from '@/modules/auth/infrastructure/persistence/sequelize/models/refresh-token.model'
 import { Role } from '@/modules/user/domain/enums/role.enum'
+import { ClientModel } from '@/modules/client/infrastructure/persistence/sequelize/models/client.model'
+import { UserClientModel } from './user-client.model'
 
 @Table({ tableName: 'users', timestamps: true, createdAt: 'created_at', updatedAt: 'updated_at' })
 export class UserModel extends Model {
@@ -37,4 +39,7 @@ export class UserModel extends Model {
 
   @HasMany(() => RefreshTokenModel)
   refresh_tokens: RefreshTokenModel[]
+
+  @BelongsToMany(() => ClientModel, () => UserClientModel)
+  clients: ClientModel[]
 }

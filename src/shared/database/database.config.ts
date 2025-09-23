@@ -4,6 +4,8 @@ import { z } from 'zod'
 import { Dialect } from 'sequelize'
 import { UserModel } from '@/modules/user/infrastructure/persistence/sequelize/models/user.model'
 import { RefreshTokenModel } from '@/modules/auth/infrastructure/persistence/sequelize/models/refresh-token.model'
+import { ClientModel } from '@/modules/client/infrastructure/persistence/sequelize/models/client.model'
+import { UserClientModel } from '@/modules/user/infrastructure/persistence/sequelize/models/user-client.model'
 
 const dbConfigSchema = z.object({
   DB_DIALECT: z.string().default('postgres'),
@@ -24,7 +26,7 @@ export const databaseConfig = registerAs('database', () => {
     username: validatedConfig.DB_USERNAME,
     password: validatedConfig.DB_PASSWORD,
     database: validatedConfig.DB_DATABASE,
-    models: [UserModel, RefreshTokenModel],
+    models: [UserModel, RefreshTokenModel, ClientModel, UserClientModel],
     autoLoadModels: true,
     synchronize: false, // Never use true in production
     schema: validatedConfig.POSTGRES_SCHEMA,
