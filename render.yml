@@ -1,0 +1,60 @@
+# render.yml
+# Description: Blueprint for deploying the NestJS Auth Microservice on Render.
+# This configuration defines a PostgreSQL database and a Dockerized web service.
+
+databases:
+  # Defines the PostgreSQL database service.
+  - name: postgres-auth-db
+    databaseName: auth_db # The name of the database to create.
+    user: postgres # The default user for the database.
+    ipAllowList: [] # Allows access from any Render service. For production, consider restricting IPs.
+
+services:
+  # Defines the NestJS application web service.
+  - type: web
+    name: auth-ms-app
+    runtime: docker # Specifies that this service is built from a Dockerfile.
+    dockerfilePath: ./Dockerfile.prod # Points to the production-optimized Dockerfile.
+    healthCheckPath: /api/v1/health # Endpoint for Render to check service health.
+    envVars:
+      # --- Database Connection ---
+      # Automatically gets the connection string from the database service defined above.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: postgres-auth-db
+          property: connectionString
+
+      # --- Application & JWT Configuration ---
+      # Best Practice: Use `sync: false` for secrets. This means you must set their
+      # values in the Render dashboard under your service's "Environment" tab.
+      # Render will not overwrite them on subsequent deploys.
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000 # The port your application listens on.
+      - key: DB_HOST
+        fromDatabase:
+          name: postgres-auth-db
+          property: host # Automatically gets the host from the database service.
+      - key: DB_PORT
+        fromDatabase:
+          name: postgres-auth-db
+          property: port # Automatically gets the port from the database service.
+      - key: DB_USERNAME
+        fromDatabase:
+          name: postgres-auth-db
+          property: user # Automatically gets the user from the database service.
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: postgres-auth-db
+          property: password # Automatically gets the password from the database service.
+      - key: DB_DATABASE
+        fromDatabase:
+          name: postgres-auth-db
+          property: database # Automatically gets the database name from the database service.
+      - key: JWT_SECRET
+        sync: false # Set this secret in the Render dashboard.
+      - key: JWT_ACCESS_TOKEN_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_TOKEN_EXPIRES_IN
+        value: 7d
