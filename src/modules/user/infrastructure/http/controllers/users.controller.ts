@@ -36,6 +36,7 @@ export class UsersController {
       username: dto.username,
       email: dto.email,
       password: dto.password,
+      client_id: dto.client_id,
       firstName: dto.firstName,
       lastName: dto.lastName,
     })

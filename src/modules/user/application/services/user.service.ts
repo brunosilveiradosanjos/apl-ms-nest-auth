@@ -32,7 +32,7 @@ export class UserService {
     const password_hash = await this.hashProvider.hash(dto.password)
 
     // 3. Create the user in the database
-    await this.usersRepository.create({
+    const newUser = await this.usersRepository.create({
       username: dto.username,
       email: dto.email,
       password_hash,
@@ -40,6 +40,8 @@ export class UserService {
       last_name: dto.lastName,
       role: Role.User, // Assign default role on creation
     })
+
+    await this.usersRepository.associateWithClient(newUser.id, dto.client_id)
   }
   async findById(id: string): Promise<User> {
     const user = await this.usersRepository.findById(id)

@@ -4,10 +4,17 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { UserModel } from '../models/user.model'
 import { userStub } from '../../../../../../../test/stubs/user.stub'
 import { Op } from 'sequelize'
+import { UserClientModel } from '../models/user-client.model'
+import { ClientModel } from '@/modules/client/infrastructure/persistence/sequelize/models/client.model'
+import { userClientStub } from '../../../../../../../test/stubs/user_client.stub'
 
 const userModelInstance = {
   ...userStub(),
   toJSON: () => userStub(),
+}
+
+const mockUserClientModel = {
+  create: jest.fn(),
 }
 
 // Mock the UserModel with all necessary methods
@@ -30,6 +37,10 @@ describe('SequelizeUsersRepository', () => {
           provide: getModelToken(UserModel),
           useValue: mockUserModel,
         },
+        {
+          provide: getModelToken(UserClientModel),
+          useValue: mockUserClientModel,
+        },
       ],
     }).compile()
 
@@ -43,22 +54,46 @@ describe('SequelizeUsersRepository', () => {
   // Common user data for consistent comparisons, omitting the volatile last_login date
   const userStubWithoutDate = (({ ...rest }) => rest)(userStub())
 
-  describe('findByUsernameOrEmail', () => {
-    it('should call findOne with correct query and return a user', async () => {
+  describe('findByClientIdAndUsernameOrEmail', () => {
+    it('should call findOne with correct query and include clause', async () => {
+      const clientId = 'client-123'
       const identifier = 'test'
-      const user = await repository.findByUsernameOrEmail(identifier)
+      await repository.findByClientIdAndUsernameOrEmail(clientId, identifier)
+
       expect(mockUserModel.findOne).toHaveBeenCalledWith({
         where: {
           [Op.or]: [{ username: identifier }, { email: identifier }],
         },
+        include: [
+          {
+            model: ClientModel,
+            where: { id: clientId },
+            required: true,
+          },
+        ],
       })
+    })
+
+    it('should return a user if found', async () => {
+      const user = await repository.findByClientIdAndUsernameOrEmail('client-123', 'test')
       expect(user).toEqual(userStub())
     })
 
     it('should return null if user is not found', async () => {
       mockUserModel.findOne.mockResolvedValue(null)
-      const user = await repository.findByUsernameOrEmail('test')
+      const user = await repository.findByClientIdAndUsernameOrEmail('client-123', 'test')
       expect(user).toBeNull()
+    })
+  })
+
+  describe('associateWithClient', () => {
+    it('should call create on UserClientModel with correct IDs', async () => {
+      const { user_id, client_id } = userClientStub()
+      await repository.associateWithClient(user_id, client_id)
+      expect(mockUserClientModel.create).toHaveBeenCalledWith({
+        user_id,
+        client_id,
+      })
     })
   })
 

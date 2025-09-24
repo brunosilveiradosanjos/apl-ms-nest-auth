@@ -9,10 +9,12 @@ import { IUsersRepository } from './domain/repositories/i-users.repository'
 import { SequelizeUsersRepository } from './infrastructure/persistence/sequelize/repositories/sequelize-users.repository'
 import { IHashProvider } from '@/modules/auth/infrastructure/providers/hash/i-hash.provider'
 import { BcryptHashProvider } from '@/modules/auth/infrastructure/providers/hash/bcrypt-hash.provider'
-import { UsersController } from './infrastructure/http/controllers/users.controller'
+import { UsersController } from '@/modules/user/infrastructure/http/controllers/users.controller'
+import { UserClientModel } from '@/modules/user/infrastructure/persistence/sequelize/models/user-client.model'
+import { HashModule } from '@/modules/auth/hash.module'
 
 @Module({
-  imports: [SequelizeModule.forFeature([UserModel]), JwtModule.register({}), ConfigModule],
+  imports: [SequelizeModule.forFeature([UserModel, UserClientModel]), HashModule, JwtModule.register({}), ConfigModule],
   controllers: [UsersController],
   providers: [
     UserService,
@@ -25,5 +27,6 @@ import { UsersController } from './infrastructure/http/controllers/users.control
       useClass: BcryptHashProvider,
     },
   ],
+  exports: [IUsersRepository],
 })
 export class UserModule {}

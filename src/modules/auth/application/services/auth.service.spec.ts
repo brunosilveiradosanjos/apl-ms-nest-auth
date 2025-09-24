@@ -21,7 +21,7 @@ describe('AuthService', () => {
   beforeEach(async () => {
     // Define the mock implementations
     const usersRepositoryMock = {
-      findByUsernameOrEmail: jest.fn(),
+      findByClientIdAndUsernameOrEmail: jest.fn(),
       findByUsername: jest.fn(),
       findByEmail: jest.fn(),
       findById: jest.fn(),
@@ -87,36 +87,37 @@ describe('AuthService', () => {
 
   describe('login', () => {
     it('should throw UnauthorizedException if user is not found', async () => {
-      usersRepository.findByUsernameOrEmail.mockResolvedValue(null)
-      await expect(authService.login('nouser', 'pass')).rejects.toThrow(UnauthorizedException)
+      usersRepository.findByClientIdAndUsernameOrEmail.mockResolvedValue(null)
+      await expect(authService.login('nouser', 'pass', 'pass')).rejects.toThrow(UnauthorizedException)
     })
 
     it('should throw ForbiddenException if user is not active', async () => {
       const inactiveUser = { ...userStub(), is_active: false }
-      usersRepository.findByUsernameOrEmail.mockResolvedValue(inactiveUser)
-      await expect(authService.login('inactive', 'pass')).rejects.toThrow(ForbiddenException)
+      usersRepository.findByClientIdAndUsernameOrEmail.mockResolvedValue(inactiveUser)
+      await expect(authService.login('inactive', 'pass', 'pass')).rejects.toThrow(ForbiddenException)
     })
 
     it('should throw UnauthorizedException if password does not match', async () => {
-      usersRepository.findByUsernameOrEmail.mockResolvedValue(userStub())
+      usersRepository.findByClientIdAndUsernameOrEmail.mockResolvedValue(userStub())
       hashProvider.compare.mockResolvedValue(false)
-      await expect(authService.login('johndoe', 'wrongpass')).rejects.toThrow(UnauthorizedException)
+      await expect(authService.login('johndoe', 'wrongpass', 'wrongpass')).rejects.toThrow(UnauthorizedException)
     })
 
     it('should return tokens and update last login on success', async () => {
       const user = userStub()
-      usersRepository.findByUsernameOrEmail.mockResolvedValue(user)
+      usersRepository.findByClientIdAndUsernameOrEmail.mockResolvedValue(user)
       hashProvider.compare.mockResolvedValue(true)
       jwtService.signAsync.mockResolvedValue('fake_token')
       refreshTokensRepository.create.mockResolvedValue({
         id: 'some-id',
         user_id: user.id,
         token_hash: 'some-hash',
+        client_id: 'some-client-id',
         expires_at: new Date(),
         is_revoked: false,
       })
 
-      const result = await authService.login('johndoe', 'pass')
+      const result = await authService.login('johndoe', 'pass', 'pass')
 
       expect(result).toHaveProperty('access_token')
       expect(result).toHaveProperty('refresh_token')
@@ -136,6 +137,7 @@ describe('AuthService', () => {
         id: '1',
         user_id: '1',
         token_hash: 'hash',
+        client_id: 'some-client-id',
         expires_at: new Date(Date.now() + 100000),
         is_revoked: false,
       }
@@ -149,6 +151,7 @@ describe('AuthService', () => {
         id: '1',
         user_id: '1',
         token_hash: 'hash',
+        client_id: 'some-client-id',
         expires_at: new Date(Date.now() + 100000),
         is_revoked: false,
       }

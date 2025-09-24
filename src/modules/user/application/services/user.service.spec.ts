@@ -3,14 +3,14 @@ import { ConflictException, NotFoundException } from '@nestjs/common'
 import { UserService } from './user.service'
 import { userStub } from '../../../../../test/stubs/user.stub'
 import { User } from '@/modules/user/domain/entities/user.entity'
-import { Role } from '../../domain/enums/role.enum'
 import {
   IUsersRepository,
   IUsersRepository as IUsersRepositorySymbol,
 } from '@/modules/user/domain/repositories/i-users.repository'
 import { IHashProvider, IHashProvider as IHashProviderSymbol } from '@/modules/auth/infrastructure/providers/hash/i-hash.provider'
-import { CreateUserDto } from '../../infrastructure/http/dto/create-user.dto'
-import { UpdateUserProfileDto } from '../../infrastructure/http/dto/update-user-profile.dto'
+import { CreateUserDto } from '@/modules/user/infrastructure/http/dto/create-user.dto'
+import { UpdateUserProfileDto } from '@/modules/user/infrastructure/http/dto/update-user-profile.dto'
+import { Role } from '@/modules/user/domain/enums/role.enum'
 
 describe('UserService', () => {
   let userService: UserService
@@ -26,7 +26,9 @@ describe('UserService', () => {
       findAll: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
-      save: jest.fn(), // Added for soft delete
+      associateWithClient: jest.fn(),
+      findByClientIdAndUsernameOrEmail: jest.fn(),
+      updateLastLogin: jest.fn(),
     }
 
     const hashProviderMock = {
@@ -56,6 +58,9 @@ describe('UserService', () => {
       username: 'newuser',
       email: 'new@example.com',
       password: 'password123',
+      client_id: 'client-123',
+      firstName: 'New',
+      lastName: 'User',
     }
 
     it('should throw ConflictException if username exists', async () => {
@@ -69,21 +74,29 @@ describe('UserService', () => {
       await expect(userService.signUp(signUpDto)).rejects.toThrow(ConflictException)
     })
 
-    it('should create a user successfully', async () => {
+    it('should create a user and associate it with a client successfully', async () => {
+      // Arrange
+      usersRepository.findByUsername.mockResolvedValue(null)
+      usersRepository.findByEmail.mockResolvedValue(null)
       hashProvider.hash.mockResolvedValue('hashed_password')
-      usersRepository.create.mockResolvedValue(undefined as any) // `create` returns void/Promise<void>
+      // --- FIX: Mock `create` to return a user object ---
+      usersRepository.create.mockResolvedValue(userStub())
 
-      // The method should resolve without returning a value
-      await expect(userService.signUp(signUpDto)).resolves.toBeUndefined()
+      // Act
+      await userService.signUp(signUpDto)
 
-      expect(usersRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          username: signUpDto.username,
-          email: signUpDto.email,
-          password_hash: 'hashed_password',
-          role: Role.User,
-        }),
-      )
+      // 2. Verify the user was created with the correct data
+      expect(usersRepository.create).toHaveBeenCalledWith({
+        username: signUpDto.username,
+        email: signUpDto.email,
+        password_hash: 'hashed_password',
+        first_name: signUpDto.firstName,
+        last_name: signUpDto.lastName,
+        role: Role.User,
+      })
+
+      // 3. Verify the new user was associated with the client
+      expect(usersRepository.associateWithClient).toHaveBeenCalledWith(userStub().id, signUpDto.client_id)
     })
   })
 
