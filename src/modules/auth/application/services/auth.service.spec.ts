@@ -6,7 +6,7 @@ import { IHashProvider } from '@/modules/auth/infrastructure/providers/hash/i-ha
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import { Sequelize } from 'sequelize-typescript'
-import { userStub } from '../../../../../test/stubs/user.stub'
+import { userStub } from '$/stubs/user.stub'
 import { UnauthorizedException, ForbiddenException, NotFoundException } from '@nestjs/common'
 
 describe('AuthService', () => {

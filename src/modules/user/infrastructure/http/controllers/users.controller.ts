@@ -5,11 +5,11 @@ import { AuthGuard } from '@nestjs/passport'
 
 import { UserService } from '@/modules/user/application/services/user.service'
 import { CreateUserDto } from '@/modules/user/infrastructure/http/dto/create-user.dto'
-import { UserProfileResponseDto } from '../dto/user-profile-response.dto'
+import { UserProfileResponseDto } from '@/modules/user/infrastructure/http/dto/user-profile-response.dto'
 import { Roles } from '@/shared/decorators/roles.decorator'
 import { Role } from '@/modules/user/domain/enums/role.enum'
 import { RolesGuard } from '@/shared/guards/roles.guard'
-import { UpdateUserProfileDto } from '../dto/update-user-profile.dto'
+import { UpdateUserProfileDto } from '@/modules/user/infrastructure/http/dto/update-user-profile.dto'
 
 @ApiTags('Users')
 @Controller('users')

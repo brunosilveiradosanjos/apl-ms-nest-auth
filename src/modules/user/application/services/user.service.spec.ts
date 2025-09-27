@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { ConflictException, NotFoundException } from '@nestjs/common'
 import { UserService } from './user.service'
-import { userStub } from '../../../../../test/stubs/user.stub'
+import { userStub } from '$/stubs/user.stub'
 import { User } from '@/modules/user/domain/entities/user.entity'
 import {
   IUsersRepository,

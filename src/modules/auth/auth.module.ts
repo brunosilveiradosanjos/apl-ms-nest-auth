@@ -13,7 +13,7 @@ import { SequelizeRefreshTokensRepository } from './infrastructure/persistence/s
 import { AuthCleanupService } from './application/services/auth-cleanup.service'
 import { JwtStrategy } from './infrastructure/http/strategies/jwt.strategy'
 import { HashModule } from './hash.module'
-import { UserModule } from '../user/user.module'
+import { UserModule } from '@/modules/user/user.module'
 
 @Module({
   imports: [

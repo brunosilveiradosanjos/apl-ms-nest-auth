@@ -1,12 +1,12 @@
 import { SequelizeUsersRepository } from './sequelize-users.repository'
 import { getModelToken } from '@nestjs/sequelize'
 import { Test, TestingModule } from '@nestjs/testing'
-import { UserModel } from '../models/user.model'
-import { userStub } from '../../../../../../../test/stubs/user.stub'
+import { UserModel } from '@/modules/user/infrastructure/persistence/sequelize/models/user.model'
+import { userStub } from '$/stubs/user.stub'
 import { Op } from 'sequelize'
-import { UserClientModel } from '../models/user-client.model'
+import { UserClientModel } from '@/modules/user/infrastructure/persistence/sequelize/models/user-client.model'
 import { ClientModel } from '@/modules/client/infrastructure/persistence/sequelize/models/client.model'
-import { userClientStub } from '../../../../../../../test/stubs/user_client.stub'
+import { userClientStub } from '$/stubs/user_client.stub'
 
 const userModelInstance = {
   ...userStub(),

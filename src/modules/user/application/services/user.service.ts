@@ -8,7 +8,7 @@ import { IHashProvider, IHashProvider as IHashProviderSymbol } from '@/modules/a
 import { User } from '@/modules/user/domain/entities/user.entity'
 import { Role } from '@/modules/user/domain/enums/role.enum'
 import { UpdateUserProfileDto } from '@/modules/user/infrastructure/http/dto/update-user-profile.dto'
-import { CreateUserDto } from '../../infrastructure/http/dto/create-user.dto'
+import { CreateUserDto } from '@/modules/user/infrastructure/http/dto/create-user.dto'
 
 @Injectable()
 export class UserService {

@@ -7,7 +7,7 @@ import { User } from '@/modules/user/domain/entities/user.entity'
 import { generateUniqueId } from '@/shared/utils/generate-unique-id'
 import { Op } from 'sequelize'
 import { ClientModel } from '@/modules/client/infrastructure/persistence/sequelize/models/client.model'
-import { UserClientModel } from '../models/user-client.model'
+import { UserClientModel } from '@/modules/user/infrastructure/persistence/sequelize/models/user-client.model'
 
 @Injectable()
 export class SequelizeUsersRepository implements IUsersRepository {

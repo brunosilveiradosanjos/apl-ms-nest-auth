@@ -15,7 +15,8 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "paths": {
-      "@/*": ["src/*"] // Maps any import starting with '@/' to the 'src/' directory.
+      "@/*": ["src/*"], // Maps any import starting with '@/' to the 'src/' directory.
+      "$/*": ["test/*"] // Maps any import starting with '$/' to the 'test/' directory.
     },
     "incremental": true,
     "skipLibCheck": true,

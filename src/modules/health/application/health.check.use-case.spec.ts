@@ -1,4 +1,4 @@
-import { HealthIndicator, HealthResult } from '../domain/health.indicator'
+import { HealthIndicator, HealthResult } from '@/modules/health/domain/health.indicator'
 import { HealthCheckUseCase } from './health.check.use-case'
 
 class MockHealthIndicator extends HealthIndicator {

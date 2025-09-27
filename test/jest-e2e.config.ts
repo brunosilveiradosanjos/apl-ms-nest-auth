@@ -21,6 +21,7 @@ const config: Config = {
   // Maps the '@/' path alias to the 'src' directory, allowing clean imports in tests.
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^\\$/(.*)$': '<rootDir>/test/$1',
   },
 
   // Automatically clear mocks between every test.
