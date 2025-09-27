@@ -1,4 +1,4 @@
-import { User } from '../entities/user.entity'
+import { User } from '@/modules/user/domain/entities/user.entity'
 
 export const IUsersRepository = Symbol('IUsersRepository')
 

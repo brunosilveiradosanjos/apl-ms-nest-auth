@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { Sequelize } from 'sequelize-typescript'
-import { HealthIndicator, HealthResult } from '../domain/health.indicator'
+import { HealthIndicator, HealthResult } from '@/modules/health/domain/health.indicator'
 
 @Injectable()
 export class DatabaseHealthIndicator implements HealthIndicator {

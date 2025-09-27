@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { getModelToken } from '@nestjs/sequelize'
 import { SequelizeRefreshTokensRepository } from './sequelize-refresh-tokens.repository'
-import { RefreshTokenModel } from '../models/refresh-token.model'
+import { RefreshTokenModel } from '@/modules/auth/infrastructure/persistence/sequelize/models/refresh-token.model'
 import { Op } from 'sequelize'
 
 // Mock the RefreshTokenModel
@@ -40,6 +40,7 @@ describe('SequelizeRefreshTokensRepository', () => {
         id: '1',
         user_id: '1',
         token_hash: 'hash',
+        client_id: 'client-123', // Added client_id
         expires_at: new Date(),
       }
       mockRefreshTokenModel.create.mockResolvedValue({ toJSON: () => tokenData })

@@ -21,6 +21,7 @@ const config: Config = {
   // Maps the '@/' path alias to the 'src' directory for clean imports.
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^\\$/(.*)$': '<rootDir>/test/$1',
   },
 
   // Ignore the E2E test folder to ensure unit and E2E tests are separated.

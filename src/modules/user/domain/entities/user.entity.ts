@@ -1,4 +1,4 @@
-import { Role } from '../enums/role.enum'
+import { Role } from '@/modules/user/domain/enums/role.enum'
 
 export class User {
   id: string
